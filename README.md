@@ -2,6 +2,9 @@
 
 A high-performance Fullstack task management application built using the latest Microsoft .NET technologies and advanced architectural patterns. This repository showcases a production-ready enterprise solution focusing on security, reactive state management, clean boundaries, and dynamic localization.
 
+<img width="1908" height="947" alt="slika" src="https://github.com/user-attachments/assets/b8f2d68d-7130-46c1-b6ea-a8a9572537b0" />
+
+
 ## 🏗️ Architecture & Technology Stack
 
 The application is engineered strictly on the principles of **Clean Architecture** and separation of concerns. The system decouples backend service orchestration from a highly responsive Frontend Single Page Application (SPA).
