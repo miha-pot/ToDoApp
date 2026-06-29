@@ -1,0 +1,100 @@
+﻿@inherits LayoutComponentBase
+
+@inject IDataStorage _localStorage
+@inject LanguageState LangState
+
+<MudThemeProvider Theme="_theme" @bind-IsDarkMode="@_isDarkMode" />
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+<MudLayout>
+
+    <NavMenu @bind-IsDarkMode="@_isDarkMode" OnDrawerToggle="DrawerToggle" />
+
+    <LeftMenu SideMenuOpen="@_drawerOpen" SideMenuOpenChanged="OnDrawerOpenChanged" />
+    <MudMainContent Class="pa-4 pb-16">
+        @Body
+    </MudMainContent>
+
+    <Footer />
+</MudLayout>
+
+@code {
+    private bool _drawerOpen = true;
+    private bool _isDarkMode = false;
+    private bool _isInitialized = false;
+
+    private const string ThemeKey = "themeMode";
+    private const string DrawerKey = "drawer_open_state";
+
+    private MudTheme _theme = new()
+    {
+        PaletteDark = new PaletteDark()
+        {
+            Primary = Colors.Blue.Default,
+            Surface = "#1e1e1e",      // Malo svetlejša od popolne črne
+            Background = "#121212",   // Glavno ozadje
+            BackgroundGray = "#272727", // Elementi v ozadju
+            AppbarText = Colors.Shades.White,
+            AppbarBackground = "#1e1e1e",
+            DrawerBackground = "#1e1e1e",
+            DrawerText = Colors.Shades.White,
+            TextPrimary = Colors.Shades.White,
+            TextSecondary = Colors.Gray.Lighten2
+        },
+        PaletteLight = new PaletteLight()
+        {
+            Primary = Colors.Blue.Default,
+            AppbarText = Colors.Shades.Black,
+            TextPrimary = Colors.Shades.Black,
+            TextSecondary = Colors.Gray.Darken2,
+            AppbarBackground = Colors.LightBlue.Lighten5
+        }
+    };
+
+    private async Task DrawerToggle()
+    {
+        await OnDrawerOpenChanged(!_drawerOpen);
+    }
+
+    private async Task OnDrawerOpenChanged(bool value)
+    {
+        _drawerOpen = value;
+        if (_isInitialized)
+        {
+            await _localStorage.SetItemAsync(DrawerKey, value);
+        }
+        StateHasChanged();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                // 1. Pridobi shranjeno temo
+                var storedTheme = await _localStorage.GetItemAsync<string>(ThemeKey);
+                if (!string.IsNullOrEmpty(storedTheme))
+                {
+                    _isDarkMode = storedTheme == "dark";
+                }
+
+                // 2. Pridobi shranjeno stanje drawerja
+                var storedDrawer = await _localStorage.GetItemAsync<bool?>(DrawerKey);
+                _drawerOpen = storedDrawer ?? true;
+
+                // 3. Označi, da je branje končano in lahko varno pišemo ob klikih
+                _isInitialized = true;
+
+                StateHasChanged();
+            }
+            catch
+            {
+                // Ignoriramo morebitne JS napake med nalaganjem strani
+                _isInitialized = true;
+            }
+        }
+    }
+}

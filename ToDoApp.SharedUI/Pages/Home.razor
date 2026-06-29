@@ -1,0 +1,71 @@
+﻿@page "/"
+@using System.Globalization
+@inject LanguageState LangState
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="pt-16 my-auto">
+    <MudGrid Justify="Justify.Center" Style="align-items: center; min-height: 75vh;">
+
+        <MudItem xs="12" md="6" Class="order-2 order-md-1">
+            <MudText Typo="Typo.h3" Color="Color.Primary" Style="font-weight: 700;" Class="mb-2">
+                Task manager
+            </MudText>
+
+            <MudText Typo="Typo.h6" Color="Color.Secondary" Class="mb-6">
+                @LangState.T("WelcomeSubTitle")
+            </MudText>
+            
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       Size="Size.Large"
+                       Href="/todo"
+                       Class="rounded-pill px-6 py-3 mb-8 shadow-md">
+                @LangState.T("TryItButton")
+            </MudButton>
+
+            <div class="mt-4">
+                <MudText Typo="Typo.subtitle2" Color="Color.Secondary" Style="font-weight: 700;" Class="mb-2">
+                    @LangState.T("BuiltWithLabel"):
+                </MudText>
+
+                <div class="d-flex align-center gap-4 flex-wrap">
+                    <div><i class="devicons devicon-csharp-plain colored style-icon" title="C#"></i></div>
+                    <div><i class="devicons devicon-blazor-original colored style-icon" title="Blazor"></i></div>
+                    <div><i class="devicons devicon-javascript-plain colored style-icon" title="JavaScript"></i></div>
+                    <div><i class="devicons devicon-html5-plain colored style-icon" title="HTML5"></i></div>
+                    <div><i class="devicons devicon-css3-plain colored style-icon" title="CSS3"></i></div>
+                </div>
+            </div>
+        </MudItem>
+
+        <MudItem xs="12" md="6" Class="order-1 order-md-2" Style="text-align: center;">
+            <MudImage Src="/images/LandingPageLogo.png"
+                      Alt="Landing Page Logo"
+                      Fluid="true"
+                      ObjectFit="ObjectFit.Contain"
+                      Style="max-height: 400px; width: 100%;" />
+        </MudItem>
+
+    </MudGrid>
+</MudContainer>
+
+<style>
+    .style-icon {
+        font-size: 2rem;
+    }
+</style>
+
+@implements IDisposable
+
+@code {
+    protected override void OnInitialized()
+    {
+        LangState.OnLanguageChanged += RefreshUI;
+    }
+
+    private void RefreshUI() => InvokeAsync(StateHasChanged);
+
+    public void Dispose()
+    {
+        LangState.OnLanguageChanged -= RefreshUI;
+    }
+}

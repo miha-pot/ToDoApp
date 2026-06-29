@@ -1,0 +1,197 @@
+﻿@page "/tag"
+@page "/tag/index"
+
+@inject ITagService _tagService
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+@implements IDisposable
+
+@* Smanjšamo vrhnji odmik (pt-4 namesto pt-16), da na telefonu ne izgubljamo dragocenega prostora *@
+<MudContainer MaxWidth="MaxWidth.Large" Class="pt-16 my-4">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mud-w-100 px-2 mb-4">
+
+        <MudText Typo="Typo.h5" Class="mud-typography-weight-bold text-primary ma-0">
+            <MudIcon Icon="@Icons.Material.Filled.ListAlt" Class="me-2 mb-1" Size="Size.Medium" />
+            Tag management
+        </MudText>
+
+        <MudSpacer />
+
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Add"
+                   OnClick="NavigateToCreate"
+                   Class="rounded-pill px-6">
+            Novo
+        </MudButton>
+
+    </MudStack>
+    @* Breakpoint.Sm poskrbi za avtomatsko transformacijo tabele v lepe mobilne kartice *@
+    <MudTable T="TagResponse" ServerData="LoadServerData"
+              Hover="true"
+              Bordered="false"
+              Striped="true"
+              Elevation="2"
+              Breakpoint="Breakpoint.Sm"
+              Class="rounded-lg mt-2"
+              @ref="_table">
+
+        <ToolBarContent>
+            @* Z uporabo MudGrid se orodna vrstica na telefonu lepo zloži v več vrstic namesto stiskanja *@
+            <MudGrid Spacing="2" Class="align-center w-100 pa-1">
+                <MudItem xs="8" sm="5">
+                    <MudTextField T="string"
+                                  ValueChanged="@OnSearchChanged"
+                                  Placeholder="Išči po naslovu..."
+                                  Adornment="Adornment.Start"
+                                  AdornmentIcon="@Icons.Material.Filled.Search"
+                                  IconSize="Size.Medium"
+                                  Class="mt-0"
+                                  Clearable="true"
+                                  FullWidth="true"
+                                  DebounceInterval="500" />
+                </MudItem>
+
+               
+            </MudGrid>
+        </ToolBarContent>
+
+        <HeaderContent>
+            <MudTh><MudTableSortLabel T="TagResponse" SortLabel="Name">Naslov</MudTableSortLabel></MudTh>
+            <MudTh Style="text-align: right;">Akcije</MudTh>
+        </HeaderContent>
+
+        <RowTemplate>
+            <MudTd DataLabel="Color" Class="fw-semibold">
+                <MudChip T="string"
+                         Style="@($"color: {context.ColorHex}; background-color: {context.BgColorHex}; font-weight: bold; font-size: 1.1rem; padding: 18px 24px;")">
+                    @context.Name
+                </MudChip>
+            </MudTd>
+            <MudTd DataLabel="Akcije" Class="text-sm-right text-start">
+                <div class="d-inline-flex gap-1">
+                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Info" Size="Size.Medium" OnClick="() => NavigateToEdit(context.Id)" Class="pa-2" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Medium" OnClick="() => RequestDeleteAsync(context.Id, context.Name!)" Class="pa-2" />
+                </div>
+            </MudTd>
+        </RowTemplate>
+
+        <NoRecordsContent>
+            <MudText Align="Align.Center" Class="p-4 text-muted">No tags found.</MudText>
+        </NoRecordsContent>
+
+        <LoadingContent>
+            <MudText Align="Align.Center" Class="p-4 text-muted">Loading server data...</MudText>
+        </LoadingContent>
+
+        <PagerContent>
+            @* Na telefonu skrijemo napredne nastavitve števila vrstic na stran, da se gumbi ne stiskajo *@
+            <MudTablePager RowsPerPageString="Vrstic:"
+                           HideRowsPerPage="true"
+                           InfoFormat="{first_item}-{last_item} od {all_items}" />
+        </PagerContent>
+    </MudTable>
+</MudContainer>
+
+@code {
+    // Vsa tvoja koda v @code bloku ostane 100 % identična, ker se spreminja izključno vizualni HTML nivo!
+    private MudTable<TagResponse> _table = null!;
+    private string _searchString = "";
+    private CancellationTokenSource _cts = new();
+
+    private async Task<TableData<TagResponse>> LoadServerData(TableState state, CancellationToken cancellationToken)
+    {
+        string? sortBy = state.SortLabel;
+        bool sortDescending = state.SortDirection == SortDirection.Descending;
+
+        QueryRequest queryRequest = new QueryRequest()
+        {
+            Page = state.Page + 1,
+            PageSize = state.PageSize,
+            SortBy = sortBy,
+            Filters = GetQueryFilters()
+        };
+
+        var response = await _tagService.GetItemsWithQuery(queryRequest, cancellationToken);
+
+        if (response.IsSuccess && response.Value != null)
+        {
+            return new TableData<TagResponse>()
+            {
+                TotalItems = response.Value.TotalCount,
+                Items = response.Value.Items
+            };
+        }
+        else
+        {
+            Snackbar.Add($"Napaka pri osveževanju baze: {response.ErrorDetail}", MudBlazor.Severity.Error);
+
+            return new TableData<TagResponse>() { TotalItems = 0, Items = Array.Empty<TagResponse>() };
+        }
+    }
+
+    private void OnSearchChanged(string text)
+    {
+        _searchString = text;
+        _table.ReloadServerData();
+    }
+
+    private List<QueryFilter> GetQueryFilters()
+    {
+        var filters = new List<QueryFilter>();
+
+        if (!string.IsNullOrWhiteSpace(_searchString))
+            filters.Add(new QueryFilter
+            {
+                Field = nameof(TagResponse.Name),
+                Value = _searchString,
+                Operator = QueryFilterOperator.Contains
+            });
+
+        return filters;
+    }
+
+    private async Task RequestDeleteAsync(Guid id, string title)
+    {
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.ExtraSmall };
+
+        bool? result = await DialogService.ShowMessageBoxAsync("Opozorilo",
+        $"Ali ste prepričani, da želite izbrisati opravilo: \"{title}\"?",
+        yesText: "Izbriši",
+        cancelText: "Prekliči",
+        options: options);
+
+        if (result == true)
+        {
+            var response = await _tagService.DeleteAsync(id, CancellationToken.None);
+
+            if (response.IsSuccess)
+            {
+                Snackbar.Add("Opravilo je bilo uspešno izbrisano.", MudBlazor.Severity.Success);
+                await _table.ReloadServerData();
+            }
+            else
+            {
+                Snackbar.Add($"Napaka pri brisanju: {response.ErrorDetail}", MudBlazor.Severity.Error);
+            }
+        }
+    }
+
+    private Color GetMudChipColor(Priority level) => level switch
+    {
+        Priority.Low => Color.Success,
+        Priority.Medium => Color.Primary,
+        Priority.High => Color.Warning,
+        _ => Color.Default
+    };
+
+    private void NavigateToCreate() => NavigationManager.NavigateTo("/tag/create");
+    private void NavigateToEdit(Guid id) => NavigationManager.NavigateTo($"/tag/edit/{id}");
+
+    public void Dispose()
+    {
+        _cts.Cancel();
+        _cts.Dispose();
+    }
+}

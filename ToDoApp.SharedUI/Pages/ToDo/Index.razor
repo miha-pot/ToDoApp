@@ -1,0 +1,356 @@
+﻿@page "/todo"
+
+@inject IToDoService _toDoService
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+@implements IDisposable
+
+@* Smanjšamo vrhnji odmik (pt-4 namesto pt-16), da na telefonu ne izgubljamo dragocenega prostora *@
+<MudContainer MaxWidth="MaxWidth.Large" Class="pt-16 my-4">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mud-w-100 px-2 mb-4">
+
+        <MudText Typo="Typo.h5" Class="mud-typography-weight-bold text-primary ma-0">
+            <MudIcon Icon="@Icons.Material.Filled.ListAlt" Class="me-2 mb-1" Size="Size.Medium" />
+            Upravljanje opravil
+        </MudText>
+
+        <MudSpacer />
+
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Add"
+                   OnClick="NavigateToCreate"
+                   Class="rounded-pill px-6">
+            Novo
+        </MudButton>
+
+    </MudStack>
+    @* Breakpoint.Sm poskrbi za avtomatsko transformacijo tabele v lepe mobilne kartice *@
+    <MudTable T="ToDoResponse" ServerData="LoadServerData"
+              Hover="true"
+              Bordered="false"
+              Striped="true"
+              Elevation="2"
+              Breakpoint="Breakpoint.Sm"
+              Class="rounded-lg mt-2"
+              @ref="_table">
+
+        <ToolBarContent>
+            @* Z uporabo MudGrid se orodna vrstica na telefonu lepo zloži v več vrstic namesto stiskanja *@
+            <MudGrid Spacing="2" Class="align-center w-100 pa-1">
+                <MudItem xs="8" sm="5">
+                    <MudTextField T="string"
+                                  ValueChanged="@OnSearchChanged"
+                                  Placeholder="Išči po naslovu..."
+                                  Adornment="Adornment.Start"
+                                  AdornmentIcon="@Icons.Material.Filled.Search"
+                                  IconSize="Size.Medium"
+                                  Class="mt-0"
+                                  Clearable="true"
+                                  FullWidth="true"
+                                  DebounceInterval="500" />
+                </MudItem>
+
+               
+            </MudGrid>
+        </ToolBarContent>
+
+        <HeaderContent>
+            <MudTh><MudTableSortLabel T="ToDoResponse" SortLabel="Title"></MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel T="ToDoResponse" SortLabel="Title">Naslov</MudTableSortLabel></MudTh>
+            <MudTh>Opis</MudTh>
+            <MudTh>
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                    <MudTableSortLabel T="ToDoResponse" SortLabel="Level">Prioriteta</MudTableSortLabel>
+
+                    @* Filter gumb, ki se obarva, ko je filter aktiven *@
+                    <MudMenu Icon="@Icons.Material.Filled.FilterList"
+                             Color="@(_selectedPriorityFilter == null ? Color.Default : Color.Primary)"
+                             Size="Size.Small"
+                             Dense="true"
+                             AnchorOrigin="Origin.BottomCenter"
+                             TransformOrigin="Origin.TopCenter">
+
+                        <div class="pa-4" style="min-width: 220px;">
+                            @* Spustni seznam z vsemi možnimi enum vrednostmi *@
+                            <MudSelect T="Priority?"
+                                       Label="Filtriraj prioriteto"
+                                       Value="_selectedPriorityFilter"
+                                       ValueChanged="OnPriorityFilterChanged"
+                                       Margin="Margin.Dense"
+                                       Variant="Variant.Outlined"
+                                       Clearable="true">
+
+                                <MudSelectItem T="Priority?" Value="null">Vse prioritete</MudSelectItem>
+                                <MudSelectItem T="Priority?" Value="Priority.VeryLow">Zelo nizka</MudSelectItem>
+                                <MudSelectItem T="Priority?" Value="Priority.Low">Nizka</MudSelectItem>
+                                <MudSelectItem T="Priority?" Value="Priority.Medium">Srednja</MudSelectItem>
+                                <MudSelectItem T="Priority?" Value="Priority.High">Visoka</MudSelectItem>
+                                <MudSelectItem T="Priority?" Value="Priority.Critical">Kritična</MudSelectItem>
+                            </MudSelect>
+                        </div>
+                    </MudMenu>
+                </MudStack>
+            </MudTh>
+
+
+            <MudTh><MudTableSortLabel T="ToDoResponse">Oznake</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel T="ToDoResponse" SortLabel="DueDate">Rok izvedbe</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel T="ToDoResponse" SortLabel="IsCompleted">Status</MudTableSortLabel></MudTh>
+            <MudTh Style="text-align: right;">Akcije</MudTh>
+        </HeaderContent>
+
+        <RowTemplate>
+            <MudTd DataLabel="Akcije" Class="text-sm-right text-start">
+                <div class="d-inline-flex gap-1">
+                    <MudIconButton Icon="@( context.IsCompleted ? Icons.Material.Filled.PlayCircle : Icons.Material.Filled.StopCircle)"
+                                   Color="@(context.IsCompleted ? Color.Error : Color.Success)"
+                                   Size="Size.Medium"
+                                   OnClick="() => RequestCompleteItemAsync(context.Id, context.Title!)"
+                                   Class="pa-2" />
+                </div>
+            </MudTd>
+            @* DataLabel je nujen, saj se na telefonu uporabi kot naslov podatka znotraj kartice *@
+            <MudTd DataLabel="Naslov" Class="fw-semibold">@context.Title</MudTd>
+            <MudTd DataLabel="Opis" Style="white-space: pre-wrap; word-break: break-word; max-width: 100%;">
+                @context.Description
+            </MudTd>
+            <MudTd DataLabel="Prioriteta">
+                <MudChip T="string" Color="@GetMudChipColor(context.Level)" Variant="Variant.Text" Size="Size.Small" Class="fw-bold ma-0">
+                    @context.Level.GetDisplayName()
+                </MudChip>
+            </MudTd>
+            <MudTd DataLabel="Oznake">
+                @* Row="true" poravna elemente v vrstico, Wrap="Wrap.Wrap" pa jih ovije ob pomanjkanju prostora *@
+                <MudStack Row="true" Wrap="Wrap.Wrap" Spacing="1">
+                    @if (context.Tags != null && context.Tags.Any())
+                    {
+                        @foreach (var tag in context.Tags)
+                        {
+                            <MudChip T="string"
+                                     Size="Size.Small"
+                                     Variant="Variant.Filled"
+                                     Style="@($"color: {tag.ColorHex}; background-color: {tag.BgColorHex}; font-weight: bold; font-size: 0.75rem;")">
+                                @tag.Name
+                            </MudChip>
+                        }
+                    }
+                    else
+                    {
+                        @* Če opravilo nima tagov, prikažemo diskreten placeholder, da celica ne izpade povsem prazna *@
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary italic">Brez oznak</MudText>
+                    }
+                </MudStack>
+            </MudTd>
+            <MudTd DataLabel="Rok izvedbe">
+                @(context.DueDate.HasValue ? context.DueDate.Value.ToLocalTime().ToString("dd. MM. yyyy") : "/")
+            </MudTd>
+            <MudTd DataLabel="Status">
+                @if (context.IsCompleted)
+                {
+                    <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Medium" />
+                }
+                else
+                {
+                    <MudIcon Icon="@Icons.Material.Filled.RadioButtonUnchecked" Color="Color.Warning" Size="Size.Medium" />
+                }
+            </MudTd>
+            @* Na mobilnem načinu gumbe poravnamo levo (start), na namizju pa ostanejo desno poravnani *@
+            <MudTd DataLabel="Akcije" Class="text-sm-right text-start">
+                <div class="d-inline-flex gap-1">
+                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Info" Size="Size.Medium" OnClick="() => NavigateToEdit(context.Id)" Class="pa-2" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Medium" OnClick="() => RequestDeleteAsync(context.Id, context.Title!)" Class="pa-2" />
+                </div>
+            </MudTd>
+        </RowTemplate>
+
+        <NoRecordsContent>
+            <MudText Align="Align.Center" Class="p-4 text-muted">No found tasks.</MudText>
+        </NoRecordsContent>
+
+        <LoadingContent>
+            <MudText Align="Align.Center" Class="p-4 text-muted">Loading server data...</MudText>
+        </LoadingContent>
+
+        <PagerContent>
+            @* Na telefonu skrijemo napredne nastavitve števila vrstic na stran, da se gumbi ne stiskajo *@
+            <MudTablePager RowsPerPageString="Vrstic:"
+                           HideRowsPerPage="true"
+                           InfoFormat="{first_item}-{last_item} od {all_items}" />
+        </PagerContent>
+    </MudTable>
+</MudContainer>
+
+@code {
+    // Vsa tvoja koda v @code bloku ostane 100 % identična, ker se spreminja izključno vizualni HTML nivo!
+    private MudTable<ToDoResponse> _table = null!;
+    private CancellationTokenSource _cts = new();
+    private Priority? _selectedPriorityFilter = null;
+    private List<QueryFilter> _filters = [];
+
+    private async Task OnPriorityFilterChanged(Priority? value)
+    {
+        string columnName = nameof(ToDoResponse.Level);
+        _selectedPriorityFilter = value;
+
+        var existingFilter = _filters.FirstOrDefault(x => x.Field == columnName);
+
+        if (value is null)
+        {
+            if (existingFilter != null)
+            {
+                _filters.Remove(existingFilter);
+            }
+        }
+        else
+        {
+            if (existingFilter != null)
+            {
+                existingFilter.Value = ((int)value).ToString(); // Shranimo kot int (ali string, odvisno od baze)
+            }
+            else
+            {
+                // Če filtra še ni, ga na novo dodamo v seznam
+                _filters.Add(new QueryFilter
+                {
+                    Field = columnName,
+                    Operator = QueryFilterOperator.Equals,
+                    Value = ((int)value).ToString()
+                });
+            }
+        }
+
+        if (_table != null)
+        {
+            await _table.ReloadServerData();
+        }
+    }
+
+    private async Task<TableData<ToDoResponse>> LoadServerData(TableState state, CancellationToken cancellationToken)
+    {
+        QueryRequest queryRequest = new QueryRequest()
+        {
+            Page = state.Page + 1,
+            PageSize = state.PageSize,
+            SortBy = state.SortLabel,
+            SortDescending = state.SortDirection == SortDirection.Descending,
+            Filters = _filters
+        };
+
+        var response = await _toDoService.GetItemsWithQuery(queryRequest, cancellationToken);
+
+        if (response.IsSuccess && response.Value != null)
+        {
+            return new TableData<ToDoResponse>()
+            {
+                TotalItems = response.Value.TotalCount,
+                Items = response.Value.Items
+            };
+        }
+        else
+        {
+            Snackbar.Add($"Napaka pri osveževanju baze: {response.ErrorDetail}", MudBlazor.Severity.Error);
+
+            return new TableData<ToDoResponse>() { TotalItems = 0, Items = Array.Empty<ToDoResponse>() };
+        }
+    }
+
+    private void OnSearchChanged(string text)
+    {
+        var filter = _filters.FirstOrDefault(x => x.Field == nameof(ToDoResponse.Title));
+
+        if (filter is null)
+        {
+            _filters.Add(new()
+            {
+                Field = nameof(ToDoResponse.Title),
+                Operator = QueryFilterOperator.Contains,
+                Value = text
+            });
+        }
+        else
+        {
+            _filters.Remove(filter);
+            _filters.Add(new()
+            {
+                Field = nameof(ToDoResponse.Title),
+                Operator = QueryFilterOperator.Contains,
+                Value = text
+            });
+        }
+
+        _table.ReloadServerData();
+    }
+
+    private async Task RequestCompleteItemAsync(Guid itemId, string title)
+    {
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.ExtraSmall };
+
+        bool? result = await DialogService.ShowMessageBoxAsync("Opozorilo",
+       $"Ali ste želite spremeniti status opravila: \"{title}\"?",
+       yesText: "Spremeni",
+       cancelText: "Prekliči",
+       options: options);
+
+        if (result == true)
+        {
+            ApiResponse<bool> completeActionResponse = await _toDoService.ChangeCompletionStatus(itemId, _cts.Token);
+
+            if (completeActionResponse.IsSuccess)
+            {
+                Snackbar.Add("Status opravila je bil uspešno spremenjen.", MudBlazor.Severity.Success);
+
+                await _table.ReloadServerData();
+
+            }
+            else
+            {
+                Snackbar.Add("Napaka pri spreminjanju statusa opravila: " + completeActionResponse.ErrorDetail, MudBlazor.Severity.Error);
+            }
+        }
+    }
+
+    private async Task RequestDeleteAsync(Guid id, string title)
+    {
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.ExtraSmall };
+
+        bool? result = await DialogService.ShowMessageBoxAsync("Opozorilo",
+        $"Ali ste prepričani, da želite izbrisati opravilo: \"{title}\"?",
+        yesText: "Izbriši",
+        cancelText: "Prekliči",
+        options: options);
+
+        if (result == true)
+        {
+            var response = await _toDoService.DeleteAsync(id, CancellationToken.None);
+
+            if (response.IsSuccess)
+            {
+                Snackbar.Add("Opravilo je bilo uspešno izbrisano.", MudBlazor.Severity.Success);
+                await _table.ReloadServerData();
+            }
+            else
+            {
+                Snackbar.Add($"Napaka pri brisanju: {response.ErrorDetail}", MudBlazor.Severity.Error);
+            }
+        }
+    }
+
+    private Color GetMudChipColor(Priority level) => level switch
+    {
+        Priority.Low => Color.Success,
+        Priority.Medium => Color.Primary,
+        Priority.High => Color.Warning,
+        _ => Color.Default
+    };
+
+    private void NavigateToCreate() => NavigationManager.NavigateTo("/todo/create");
+    private void NavigateToEdit(Guid id) => NavigationManager.NavigateTo($"/todo/edit/{id}");
+
+    public void Dispose()
+    {
+        _cts.Cancel();
+        _cts.Dispose();
+    }
+}

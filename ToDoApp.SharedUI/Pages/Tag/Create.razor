@@ -1,0 +1,193 @@
+﻿@page "/tag/create"
+
+@inject ITagService _tagService
+@inject ISnackbar Snackbar
+
+@implements IDisposable
+
+<MudGrid Justify="Justify.Center" Style="min-height: 85vh; align-items: center; padding: 16px;">
+    <MudItem xs="12" sm="8" md="5" lg="4">
+        <MudCard Elevation="3" Class="rounded-lg">
+
+            <MudCardHeader Style="background-color: var(--mud-palette-primary); color: white;" Class="py-4">
+                <CardHeaderContent>
+                    <div class="d-flex align-center gap-2">
+                        <MudIcon Icon="@Icons.Material.Filled.AddCircle" Color="Color.Inherit" />
+                        <MudText Typo="Typo.h6" Style="font-weight: 600;">Create tag</MudText>
+                    </div>
+                </CardHeaderContent>
+            </MudCardHeader>
+
+            <MudCardContent Class="pa-6">
+                <MudForm @ref="_form" Model="@_model" Validation="@(_validator.ValidateValue())">
+
+                    <MudGrid Spacing="3">
+                        <MudItem xs="12">
+                            <MudTextField @bind-Value="_model.Name"
+                                          Label="Tag"
+                                          Variant="Variant.Outlined"
+                                          Placeholder="Npr. Pripravi poročilo..."
+                                          For="@(() => _model.Name)"
+                                          Immediate="true" />
+                        </MudItem>
+                    </MudGrid>
+                    <MudGrid Class="align-center">
+                        <MudItem xs="12" md="6">
+                            <MudStack Spacing="4">
+                                <MudColorPicker @bind-Value="PickerColor"
+                                                Label="Color"
+                                                Variant="Variant.Outlined"
+                                                PickerVariant="PickerVariant.Inline" />
+
+                                <MudColorPicker @bind-Value="BgPickerColor"
+                                                Label="Background color"
+                                                Variant="Variant.Outlined"
+                                                PickerVariant="PickerVariant.Inline" />
+                            </MudStack>
+                        </MudItem>
+
+                        <MudItem xs="12" md="6">
+                            <MudPaper Class="pa-6 d-flex flex-column align-center justify-center"
+                                      Style="min-height: 165px; background-color: var(--mud-palette-background-grey);">
+
+                                <MudText Typo="Typo.caption" Class="mud-text-secondary mb-3">Preview:</MudText>
+
+                                <MudChip T="string"
+                                         Style="@($"color: {PickerColor}; background-color: {BgPickerColor}; font-weight: bold; font-size: 1.1rem; padding: 18px 24px;")">
+                                    Example
+                                </MudChip>
+                            </MudPaper>
+                        </MudItem>
+                    </MudGrid>
+                </MudForm>
+
+                @if (!_response.IsSuccess)
+                {
+                    <div class="mt-4">
+                        <ApiErrorAlert Response="@_response" />
+                    </div>
+                }
+            </MudCardContent>
+
+            <MudCardActions Class="d-flex justify-end gap-2 pa-6 border-top">
+                <MudButton Variant="Variant.Text"
+                           OnClick="Cancel"
+                           Disabled="@_isSubmitting"
+                           Class="px-6 rounded-pill">
+                    Prekliči
+                </MudButton>
+
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           OnClick="HandleValidSubmit"
+                           Disabled="@_isSubmitting"
+                           Class="px-6 rounded-pill">
+                    @if (_isSubmitting)
+                    {
+                        <MudProgressCircular Class="ms-n1 me-2" Size="Size.Small" Indeterminate="true" />
+                        <span>Saving...</span>
+                    }
+                    else
+                    {
+                        <span>Save tag</span>
+                    }
+                </MudButton>
+            </MudCardActions>
+        </MudCard>
+    </MudItem>
+</MudGrid>
+
+@code {
+    [Parameter]
+    public Guid? ParentToDoId { get; set; }
+
+    private MudForm _form = null!;
+    private TagAddRequest _model = new();
+    private TagAddRequestValidator _validator = new();
+
+    private MudBlazor.Utilities.MudColor PickerColor
+    {
+        get
+        {
+            // Če je barva v modelu prazna, nastavimo privzeto barvo (npr. modro ali belo)
+            if (string.IsNullOrWhiteSpace(_model.ColorHex))
+                return new MudBlazor.Utilities.MudColor("#000000"); // Privzeta MudBlazor Primary barva
+
+            return new MudBlazor.Utilities.MudColor(_model.ColorHex);
+        }
+        set
+        {
+            if (value != null)
+            {
+                // Ob izbiri shranimo čisto HEX vrednost (npr. "#ff0000") nazaj v model
+                _model.ColorHex = value.Value;
+            }
+        }
+    }
+
+    private MudBlazor.Utilities.MudColor BgPickerColor
+    {
+        get
+        {
+            // Če je barva v modelu prazna, nastavimo privzeto barvo (npr. modro ali belo)
+            if (string.IsNullOrWhiteSpace(_model.ColorHex))
+                return new MudBlazor.Utilities.MudColor("#E0E0E0"); // Privzeta MudBlazor Primary barva
+
+            return new MudBlazor.Utilities.MudColor(_model.BgColorHex);
+        }
+        set
+        {
+            if (value != null)
+            {
+                // Ob izbiri shranimo čisto HEX vrednost (npr. "#ff0000") nazaj v model
+                _model.BgColorHex = value.Value;
+            }
+        }
+    }
+
+    private bool _isSubmitting;
+    private readonly CancellationTokenSource _cts = new();
+    private ApiResponse<TagResponse> _response = ApiResponse<TagResponse>.Empty();
+
+    private async Task HandleValidSubmit()
+    {
+        _response = ApiResponse<TagResponse>.Empty();
+
+        // 1. Ročno sprožimo MudBlazor validacijo forme pred pošiljanjem
+        await _form.ValidateAsync();
+
+        if (!_form.IsValid)
+        {
+            Snackbar.Add("Obrazec ni veljaven. Preverite vnešene podatke.", MudBlazor.Severity.Error);
+            return;
+        }
+
+        _isSubmitting = true;
+
+        var result = await _tagService.CreateAsync(_model, _cts.Token);
+        _response = result;
+
+        if (result.IsSuccess)
+        {
+            NavigationManager.NavigateTo("/tag");
+        }
+        else
+        {
+            // Če strežnik vrne specifične napake, jih lahko preko _response preslikaš na formo
+            // (Odvisno od tega, kako imaš nastavljen ApplyServerErrors)
+        }
+
+        _isSubmitting = false;
+    }
+
+    private void Cancel()
+    {
+        NavigationManager.NavigateTo("/tag");
+    }
+
+    public void Dispose()
+    {
+        _cts.Cancel();
+        _cts.Dispose();
+    }
+}

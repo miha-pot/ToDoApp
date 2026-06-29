@@ -1,0 +1,21 @@
+<Solution>
+  <Folder Name="/src/" />
+  <Folder Name="/src/Backend/">
+    <Project Path="ToDoApp.Application/ToDoApp.Application.csproj" />
+    <Project Path="ToDoApp.Domain/ToDoApp.Domain.csproj" />
+    <Project Path="ToDoApp.Infrastructure/ToDoApp.Infrastructure.csproj" />
+    <Project Path="ToDoApp.WebAPI/ToDoApp.WebAPI.csproj" />
+  </Folder>
+  <Folder Name="/src/Frontend/">
+    <Project Path="ToDoApp.UI/ToDoApp.UI.csproj" Id="2802be6a-07ba-4017-a0dd-bdaf27bddec7" />
+  </Folder>
+  <Folder Name="/src/Shared/">
+    <Project Path="ToDoApp.Shared/ToDoApp.Shared.csproj" Id="5fc55d8e-c1ca-46a9-bd62-4fa35341bac0" />
+    <Project Path="ToDoApp.SharedUI/ToDoApp.SharedUI.csproj" Id="97982e77-8173-4900-969e-a2668cbd7f81" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="ToDoApp.Application.UnitTests/ToDoApp.Application.UnitTests.csproj" Id="3975ed2d-3ac9-4421-8d47-107cd304b356" />
+    <Project Path="ToDoApp.Domain.UnitTests/ToDoApp.Domain.UnitTests.csproj" Id="6a604fce-1672-4ef9-9c47-0091d81eedfc" />
+    <Project Path="ToDoApp.Infrastructure.IntegrationTests/ToDoApp.Infrastructure.IntegrationTests.csproj" Id="102bb9fa-2be0-484a-b8a2-a16775df1f8b" />
+  </Folder>
+</Solution>

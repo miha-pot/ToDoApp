@@ -1,0 +1,46 @@
+﻿<Router AppAssembly="@typeof(App).Assembly"
+        AdditionalAssemblies="new[] { typeof(ToDoApp.SharedUI.Pages.Home).Assembly }">
+    <Found Context="routeData">
+        <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(ToDoApp.SharedUI.Layout.MainLayout)">
+            
+            <NotAuthorized>
+                @if (context.User.Identity?.IsAuthenticated == true)
+                {
+                    <LayoutView Layout="@typeof(ToDoApp.SharedUI.Layout.MainLayout)">
+                        <div class="container mt-5">
+                            <div class="alert alert-danger text-center shadow-sm p-4" role="alert">
+                                <i class="fas fa-exclamation-triangle fa-2x mb-3 text-danger"></i>
+                                <h4 class="alert-heading fw-bold">Dostop zavrnjen (403)</h4>
+                                <p class="mb-0">Vaš račun nima potrebnih pravic za ogled te vsebine.</p>
+                                <hr>
+                                <a href="/" class="btn btn-danger px-4">Nazaj na domov</a>
+                            </div>
+                        </div>
+                    </LayoutView>
+                }
+                else
+                {
+                    <RedirectToLogin />
+                }
+            </NotAuthorized>
+
+            <Authorizing>
+                <div class="d-flex justify-content-center align-items-center" style="height: 50vh;">
+                    <div class="text-center">
+                        <div class="spinner-border text-primary" role="status"></div>
+                        <p class="mt-2 text-muted">Preverjanje avtentikacije...</p>
+                    </div>
+                </div>
+            </Authorizing>
+
+        </AuthorizeRouteView>
+
+        <FocusOnNavigate RouteData="@routeData" Selector="h1" />
+    </Found>
+
+    <NotFound>
+        <LayoutView Layout="@typeof(ToDoApp.SharedUI.Layout.MainLayout)">
+            <ToDoApp.SharedUI.Pages.NotFound />
+        </LayoutView>
+    </NotFound>
+</Router>

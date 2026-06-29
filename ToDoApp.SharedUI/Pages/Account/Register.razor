@@ -1,0 +1,184 @@
+﻿@page "/register"
+
+@inject ISnackbar Snackbar
+@inject IAuthService _authService
+
+@implements IDisposable
+
+<MudGrid Justify="Justify.Center" Style="min-height: 85vh; align-items: center; padding: 16px;">
+    <MudItem xs="12" sm="10" md="7" lg="5">
+
+        @if (_isCheckingAuth)
+        {
+            <MudProgressCircular Color="Color.Primary" Size="Size.Large" Indeterminate="true" />
+        }
+        else
+        {
+            <MudCard Elevation="4" Class="pa-6 rounded-lg">
+                <MudCardContent>
+
+                    <div style="text-align: center;" class="mb-6">
+                        <MudIcon Icon="@Icons.Material.Filled.PersonAdd" Color="Color.Primary" Size="Size.Large" Class="mb-2" />
+                        <MudText Typo="Typo.h5" Color="Color.Primary" Style="font-weight: 700;">Ustvari račun</MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mt-1">Pridružite se nam za učinkovito upravljanje delovnih nalogov.</MudText>
+                    </div>
+
+                    <MudForm @ref="_form" Model="@model" Validation="@(_validator.ValidateValue())">
+
+                        <MudGrid Class="mb-2">
+                            <MudItem xs="12" sm="6">
+                                <MudTextField T="string"
+                                              Label="Ime"
+                                              @bind-Value="model.FirstName"
+                                              Variant="Variant.Outlined"
+                                              For="@(()=>model.FirstName)"
+                                              Adornment="Adornment.Start"
+                                              AdornmentIcon="@Icons.Material.Filled.Badge"
+                                              Immediate="true" />
+                            </MudItem>
+                            <MudItem xs="12" sm="6">
+                                <MudTextField T="string"
+                                              Label="Priimek"
+                                              @bind-Value="model.LastName"
+                                              For="@(()=>model.LastName)"
+                                              Variant="Variant.Outlined"
+                                              Adornment="Adornment.Start"
+                                              AdornmentIcon="@Icons.Material.Filled.People"
+                                              Immediate="true" />
+                            </MudItem>
+                        </MudGrid>
+
+                        <MudTextField T="string"
+                                      Label="E-poštni naslov"
+                                      @bind-Value="model.Email"
+                                      For="@(()=>model.Email)"
+                                      Variant="Variant.Outlined"
+                                      Adornment="Adornment.Start"
+                                      AdornmentIcon="@Icons.Material.Filled.Email"
+                                      Immediate="true"
+                                      Class="mb-4" />
+
+                        <MudTextField T="string"
+                                      Label="Geslo"
+                                      @bind-Value="model.Password"
+                                      Variant="Variant.Outlined"
+                                      InputType="InputType.Password"
+                                      Adornment="Adornment.Start"
+                                      For="@(()=>model.Password)"
+                                      AdornmentIcon="@Icons.Material.Filled.Password"
+                                      Immediate="true"
+                                      Class="mb-4" />
+
+                        <MudTextField T="string"
+                                      Label="Potrdite geslo"
+                                      @bind-Value="model.ConfirmPassword"
+                                      Variant="Variant.Outlined"
+                                      InputType="InputType.Password"
+                                      Adornment="Adornment.Start"
+                                      For="@(()=>model.ConfirmPassword)"
+                                      AdornmentIcon="@Icons.Material.Filled.LockReset"
+                                      Immediate="true"
+                                      Class="mb-6" />
+
+                        <MudButton Variant="Variant.Filled"
+                                   Color="Color.Primary"
+                                   Size="Size.Large"
+                                   FullWidth="true"
+                                   Disabled="@_isSubmitting"
+                                   OnClick="HandleRegistration"
+                                   Class="rounded-pill py-3">
+
+                            @if (_isSubmitting)
+                            {
+                                <MudProgressCircular Class="ms-n1 me-2" Size="Size.Small" Indeterminate="true" />
+                                <MudText>Creating account...</MudText>
+                            }
+                            else
+                            {
+                                <MudText>Register</MudText>
+                            }
+
+                        </MudButton>
+                    </MudForm>
+
+                    <ApiErrorAlert Response="@_apiResponse" />
+
+                    <MudDivider Class="my-6" />
+                    <div style="text-align: center;">
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">
+                            Že imate račun?
+                            <MudLink Href="/login" Color="Color.Primary" Style="font-weight: 700; text-decoration: none;">Login in</MudLink>
+                        </MudText>
+                    </div>
+
+                </MudCardContent>
+            </MudCard>
+        }
+    </MudItem>
+</MudGrid>
+
+@code {
+    [CascadingParameter]
+    private Task<AuthenticationState> AuthStateTask { get; set; } = null!;
+    private readonly CancellationTokenSource _cts = new();
+
+    private MudForm _form = null!;
+
+    private RegisterRequest model = new();
+    private RegisterRequestValidator _validator = new();
+
+    private bool _isSubmitting;
+    private bool _isCheckingAuth = true;
+
+    private ApiResponse<bool> _apiResponse = ApiResponse<bool>.Empty();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateTask;
+        var user = authState.User;
+
+        if (user.Identity is { IsAuthenticated: true })
+        {
+            NavigationManager.NavigateTo("/todo", forceLoad: false);
+        }
+        else
+        {
+            _isCheckingAuth = false;
+        }
+    }
+
+    private async Task HandleRegistration()
+    {
+        _apiResponse = ApiResponse<bool>.Empty();
+
+        await _form.ValidateAsync();
+
+        if (!_form.IsValid)
+        {
+            Snackbar.Add("Form not valid! Check fields.", MudBlazor.Severity.Error);
+            return;
+        }
+
+        _isSubmitting = true;
+
+        var result = await _authService.RegisterAsync(model, _cts.Token);
+        _apiResponse = result;
+        if (result.IsSuccess)
+        {
+            Snackbar.Add("User profile was created! Redirecting...", MudBlazor.Severity.Success);
+            NavigationManager.NavigateTo("/");
+        }
+        else
+        {
+            Snackbar.Add("Error while creating profile! Check fields..", MudBlazor.Severity.Error);
+        }
+
+        _isSubmitting = false;
+    }
+
+    public void Dispose()
+    {
+        _cts.Cancel();
+        _cts.Dispose();
+    }
+}

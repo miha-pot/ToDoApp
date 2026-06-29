@@ -1,0 +1,221 @@
+﻿@page "/login"
+
+@inject IAuthService _authService
+@inject ISnackbar Snackbar
+
+@implements IDisposable
+
+<MudGrid Justify="Justify.Center" Style="min-height: 85vh; align-items: center; padding: 16px;">
+    <MudItem xs="12" sm="8" md="5" lg="4">
+
+        @if (_isCheckingAuth)
+        {
+            <MudProgressCircular Color="Color.Primary" Size="Size.Large" Indeterminate="true" />
+        }
+        else
+        {
+            <MudCard Elevation="4" Style="width: 100%; max-width: 450px;" Class="pa-6 rounded-lg">
+                <MudCardContent>
+                    <div style="text-align: center;" class="mb-6">
+                        <MudIcon Icon="@Icons.Material.Filled.LockOpen" Color="Color.Primary" Size="Size.Large" Class="mb-2" />
+                        <MudText Typo="Typo.h5" Class="fw-bold text-primary">Prijava v sistem</MudText>
+                        <MudText Typo="Typo.body2" Class="text-muted">Vnesite podatke za dostop do proizvodnega portala</MudText>
+                    </div>
+
+                    <MudForm @ref="_form" Model="@_model" Validation="@(_validator.ValidateValue())">
+
+                        <MudTextField T="string"
+                                      Label="E-poštni naslov"
+                                      @bind-Value="_model.Email"
+                                      Variant="Variant.Outlined"
+                                      For="@(()=>_model.Email)"
+                                      Adornment="Adornment.End"
+                                      AdornmentIcon="@Icons.Material.Filled.Clear"
+                                      OnAdornmentClick="@(() => _model.Email = string.Empty)"
+                                      Immediate="true"
+                                      Class="mb-4" />
+
+                        <MudTextField T="string"
+                                      Label="Geslo"
+                                      @bind-Value="_model.Password"
+                                      Variant="Variant.Outlined"
+                                      For="@(()=>_model.Password)"
+                                      InputType="@_passwordInput"
+                                      Adornment="Adornment.End"
+                                      AdornmentIcon="@_passwordInputIcon"
+                                      OnAdornmentClick="TogglePasswordVisibility"
+                                      Immediate="true"
+                                      Class="mb-4" />
+                                      
+                        @* <div class="d-flex align-items-center justify-content-between mb-6">
+                <MudCheckBox T="bool" @bind-Value="_model.RememberMe" Label="Zapomni si me" Color="Color.Primary" Dense="true" />
+            </div> *@
+
+                        <MudStack Row="true" Spacing="2" Class="mt-4">
+                            <MudButton Variant="Variant.Outlined"
+                                       Color="Color.Secondary"
+                                       FullWidth="true"
+                                       OnClick="ClearFields">
+                                Počisti
+                            </MudButton>
+
+                            <MudButton Variant="Variant.Filled"
+                                       Color="Color.Primary"
+                                       Size="Size.Large"
+                                       FullWidth="true"
+                                       Disabled="@_isSubmitting"
+                                       OnClick="HandleLogin"
+                                       Class="rounded-pill py-3">
+                                @if (_isSubmitting)
+                                {
+                                    <MudProgressCircular Class="ms-n1 me-2" Size="Size.Small" Indeterminate="true" />
+                                    <MudText>Preverjanje...</MudText>
+                                }
+                                else
+                                {
+                                    <MudText>Prijavi se</MudText>
+                                }
+                            </MudButton>
+                           @*  <MudButton ButtonType="ButtonType.Submit"
+                                       Variant="Variant.Filled"
+                                       Color="Color.Primary"
+                                       FullWidth="true">
+                                @if (_isSubmitting)
+                                {
+                                    <MudProgressCircular Class="ms-n1 me-2" Size="Size.Small" Indeterminate="true" />
+                                    <MudText>Preverjanje...</MudText>
+                                }
+                                else
+                                {
+                                    <MudText>Prijavi se</MudText>
+                                }
+                            </MudButton> *@
+                           
+                        </MudStack>
+
+
+                      @*   <MudButton Variant="Variant.Filled"
+                                   Color="Color.Primary"
+                                   Size="Size.Large"
+                                   FullWidth="true"
+                                   Disabled="@_isSubmitting"
+                                   OnClick="HandleLogin"
+                                   Class="rounded-pill py-3">
+                            @if (_isSubmitting)
+                            {
+                                <MudProgressCircular Class="ms-n1 me-2" Size="Size.Small" Indeterminate="true" />
+                                <MudText>Preverjanje...</MudText>
+                            }
+                            else
+                            {
+                                <MudText>Prijavi se</MudText>
+                            }
+                        </MudButton> *@
+                    </MudForm>
+
+                    <ApiErrorAlert Response="@_apiResponse" />
+                </MudCardContent>
+            </MudCard>
+        }
+    </MudItem>
+</MudGrid>
+
+@code {
+    [CascadingParameter]
+    private Task<AuthenticationState> AuthStateTask { get; set; } = null!;
+
+    private MudForm _form = null!;
+
+    private LoginRequest _model = new();
+    private LoginRequestValidator _validator = new();
+
+    private bool _isSubmitting;
+    private bool _isCheckingAuth = true;
+
+    private ApiResponse<bool> _apiResponse = ApiResponse<bool>.Empty();
+    private readonly CancellationTokenSource _cts = new();
+
+    // Logika za skrito/vidno geslo
+    private bool _passwordShow;
+    private InputType _passwordInput = InputType.Password;
+    private string _passwordInputIcon = Icons.Material.Filled.VisibilityOff;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // 1. Pridobimo trenutno stanje avtentikacije iz kaskadnega parametra
+        var authState = await AuthStateTask;
+        var user = authState.User;
+
+        // 2. 🚀 Če je uporabnik že prijavljen (IsAuthenticated == true), ga preusmerimo stran!
+        if (user.Identity is { IsAuthenticated: true })
+        {
+            // forceLoad: false prepreči ponovno nalaganje cele aplikacije (WASM osveževanje)
+            NavigationManager.NavigateTo("/todo", forceLoad: false);
+        }
+        else
+        {
+            _isCheckingAuth = false;
+        }
+    }
+
+    private async Task ClearFields()
+    {
+        // 1. Počisti model
+        _model = new LoginRequest();
+
+        // 3. Po potrebi ponovno inicializiraj formo
+        StateHasChanged();
+    }
+
+    private void TogglePasswordVisibility()
+    {
+        if (_passwordShow)
+        {
+            _passwordShow = false;
+            _passwordInput = InputType.Password;
+            _passwordInputIcon = Icons.Material.Filled.VisibilityOff;
+        }
+        else
+        {
+            _passwordShow = true;
+            _passwordInput = InputType.Text;
+            _passwordInputIcon = Icons.Material.Filled.Visibility;
+        }
+    }
+
+    private async Task HandleLogin()
+    {
+        _apiResponse = ApiResponse<bool>.Empty();
+
+        await _form.ValidateAsync();
+
+        if (!_form.IsValid)
+        {
+            Snackbar.Add("Form not valid! Check fields!", MudBlazor.Severity.Error);
+            return;
+        }
+
+        _isSubmitting = true;
+
+        // 2. Pošljemo zahtevek na klijentski Identity / Auth servis
+        var response = await _authService.LoginAsync(_model, _cts.Token);
+        _apiResponse = response;
+
+        if (response.IsSuccess)
+        {
+            NavigationManager.NavigateTo("/todo");
+        }
+        else
+        {
+            Snackbar.Add("Error while logging in!", MudBlazor.Severity.Error);
+        }
+
+        _isSubmitting = false;
+    }
+
+    public void Dispose()
+    {
+        _cts.Cancel();
+        _cts.Dispose();
+    }
+}

@@ -1,0 +1,59 @@
+﻿@using Microsoft.AspNetCore.Components.Routing
+@inject IDataStorage _localStorage
+@inject NavigationManager NavigationManager
+
+<MudDrawer Open="SideMenuOpen"
+           OpenChanged="SideMenuOpenChanged"
+           ClipMode="DrawerClipMode.Always"
+           Elevation="2">
+    <MudNavMenu>
+        <MudText Typo="Typo.subtitle1" Class="px-4 py-3">Meni</MudText>
+        <MudNavLink Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Home" href="/">Home</MudNavLink>
+        <AuthorizeView>
+            <Authorized>
+                <MudNavMenu>
+                    <MudNavGroup Title="To do" Icon="@Icons.Material.Filled.Storage" ExpandIcon="@Icons.Material.Filled.ExpandMore" Expanded="false">
+
+                        <MudNavLink Match="NavLinkMatch.All"
+                                    Icon="@Icons.Material.Filled.ListAlt"
+                                    href="/todo">
+                            Tasks
+                        </MudNavLink>
+
+                        <MudNavLink Match="NavLinkMatch.All"
+                                    Icon="@Icons.Material.Filled.AddCircleOutline"
+                                    href="/todo/create">
+                            Add task
+                        </MudNavLink>
+
+                    </MudNavGroup>
+                </MudNavMenu>
+                <MudNavMenu>
+                    <MudNavGroup Title="Tag" Icon="@Icons.Material.Filled.Tag" ExpandIcon="@Icons.Material.Filled.ExpandMore" Expanded="false">
+
+                        <MudNavLink Match="NavLinkMatch.All"
+                                    Icon="@Icons.Material.Filled.ListAlt"
+                                    href="/tag">
+                            Tags
+                        </MudNavLink>
+
+                        <MudNavLink Match="NavLinkMatch.All"
+                                    Icon="@Icons.Material.Filled.AddCircleOutline"
+                                    href="/tag/create">
+                            Add tag
+                        </MudNavLink>
+
+                    </MudNavGroup>
+                </MudNavMenu>
+            </Authorized>
+            <NotAuthorized>
+            </NotAuthorized>
+        </AuthorizeView>
+    </MudNavMenu>
+</MudDrawer>
+
+
+@code {
+    [Parameter] public bool SideMenuOpen { get; set; }
+    [Parameter] public EventCallback<bool> SideMenuOpenChanged { get; set; }
+}

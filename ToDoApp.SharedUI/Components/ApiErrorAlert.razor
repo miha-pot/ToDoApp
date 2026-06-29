@@ -1,0 +1,42 @@
+﻿@typeparam TData
+
+@if (Response is { IsSuccess: false })
+{
+    <MudAlert Severity="MudBlazor.Severity.Error"
+              Variant="Variant.Filled"
+              Square="false"
+              Class="my-4 rounded-lg shadow-sm"
+              Icon="@Icons.Material.Filled.ErrorOutline">
+
+        <MudText Typo="Typo.subtitle1" Class="fw-bold">
+            @Response.ErrorTitle
+        </MudText>
+
+        <MudText Typo="Typo.body2" Class="mb-2 opacity-75">
+            @Response.ErrorDetail
+        </MudText>
+
+        @if (Response.IsValidationError && Response.Errors is { Count: > 0 })
+        {
+            <div class="mt-2 pt-2 border-top border-white-10" style="border-top: 1px solid rgba(255,255,255,0.15);">
+                <ul style="list-style-type: disc; padding-left: 20px; margin: 0; font-size: 0.875rem;">
+                    @foreach (var (field, messages) in Response.Errors)
+                    {
+                        foreach (var msg in messages)
+                        {
+                            <li class="mt-1">
+                                <span style="opacity: 0.8;">@field:</span>
+                                <span class="fw-bold" style="color: #fff;">@msg</span>
+                            </li>
+                        }
+                    }
+                </ul>
+            </div>
+        }
+    </MudAlert>
+}
+
+@code {
+    [Parameter]
+    public ApiResponse<TData>? Response { get; set; }
+}
