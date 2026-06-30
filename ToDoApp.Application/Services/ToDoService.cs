@@ -150,7 +150,6 @@ public class ToDoService : IToDoService
             UserId = todo.UserId,
             Description = todo.Description,
 
-            // Ker smo zgoraj naredili ekspliciten Include, bodo podatki tukaj 100 % na voljo!
             Tags = todo.TodoItemTags.Select(tt => new TagResponse
             {
                 Id = tt.TagId,
@@ -159,8 +158,6 @@ public class ToDoService : IToDoService
                 BgColorHex = tt.Tag.BgColorHex
             }).ToList()
         }, cancellationToken);
-
-        //return await _queryRepository.GetListByQueryAsync<TodoItem, ToDoResponse>(queryRequest, x => x.ToResponse());
     }
 
     public async Task<ServiceResult<ToDoResponse>> UpdateItem(ToDoUpdateRequest? updateRequest, CancellationToken cancellationToken)

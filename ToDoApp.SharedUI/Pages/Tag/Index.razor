@@ -7,7 +7,6 @@
 
 @implements IDisposable
 
-@* Smanjšamo vrhnji odmik (pt-4 namesto pt-16), da na telefonu ne izgubljamo dragocenega prostora *@
 <MudContainer MaxWidth="MaxWidth.Large" Class="pt-16 my-4">
     <MudStack Row="true" AlignItems="AlignItems.Center" Class="mud-w-100 px-2 mb-4">
 
@@ -27,7 +26,7 @@
         </MudButton>
 
     </MudStack>
-    @* Breakpoint.Sm poskrbi za avtomatsko transformacijo tabele v lepe mobilne kartice *@
+
     <MudTable T="TagResponse" ServerData="LoadServerData"
               Hover="true"
               Bordered="false"
@@ -38,7 +37,6 @@
               @ref="_table">
 
         <ToolBarContent>
-            @* Z uporabo MudGrid se orodna vrstica na telefonu lepo zloži v več vrstic namesto stiskanja *@
             <MudGrid Spacing="2" Class="align-center w-100 pa-1">
                 <MudItem xs="8" sm="5">
                     <MudTextField T="string"
@@ -51,9 +49,7 @@
                                   Clearable="true"
                                   FullWidth="true"
                                   DebounceInterval="500" />
-                </MudItem>
-
-               
+                </MudItem>               
             </MudGrid>
         </ToolBarContent>
 
@@ -86,7 +82,6 @@
         </LoadingContent>
 
         <PagerContent>
-            @* Na telefonu skrijemo napredne nastavitve števila vrstic na stran, da se gumbi ne stiskajo *@
             <MudTablePager RowsPerPageString="Vrstic:"
                            HideRowsPerPage="true"
                            InfoFormat="{first_item}-{last_item} od {all_items}" />
@@ -95,7 +90,6 @@
 </MudContainer>
 
 @code {
-    // Vsa tvoja koda v @code bloku ostane 100 % identična, ker se spreminja izključno vizualni HTML nivo!
     private MudTable<TagResponse> _table = null!;
     private string _searchString = "";
     private CancellationTokenSource _cts = new();

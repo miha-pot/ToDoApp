@@ -10,10 +10,13 @@ public class FluentTagConfig : IEntityTypeConfiguration<Tag>
     {
         builder.Property(x => x.Name).HasMaxLength(50);
         builder.Property(x => x.Name).IsRequired();
+
         builder.Property(x => x.ColorHex).HasMaxLength(10);
         builder.Property(x => x.ColorHex).IsRequired();
+
         builder.Property(x => x.BgColorHex).HasMaxLength(10);
         builder.Property(x => x.BgColorHex).IsRequired();
+
         builder.Property(x => x.UserId).IsRequired();
     }
 }

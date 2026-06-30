@@ -15,13 +15,12 @@ public static class VersioningExtensions
             options.DefaultApiVersion = new ApiVersion(1, 0);
             options.ReportApiVersions = true;
 
-            // This is what you had in your working second block
             options.ApiVersionReader = new UrlSegmentApiVersionReader();
         })
                 .AddApiExplorer(options =>
                 {
                     options.GroupNameFormat = "'v'VVV";
-                    options.SubstituteApiVersionInUrl = true; // Crucial for URL routing!
+                    options.SubstituteApiVersionInUrl = true;
                 });
 
         return services;

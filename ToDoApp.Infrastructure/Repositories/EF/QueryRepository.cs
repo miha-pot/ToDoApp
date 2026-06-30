@@ -56,8 +56,6 @@ public class QueryRepository : IQueryRepository
     {
         Guid currentUserId = _currentUserRepository.GetUserId();
 
-        // Pomembno: Tukaj vzamemo navaden Set<T>, ker bomo .AsNoTracking() dali na koncu, 
-        // ko bomo dejansko izvajali query, da Include-i delujejo pravilno.
         var query = _db.Set<T>().AsQueryable();
 
         if (typeof(IUserOwnedEntity).IsAssignableFrom(typeof(T)))
@@ -69,19 +67,15 @@ public class QueryRepository : IQueryRepository
                     .ApplySort(request.SortBy, request.SortDescending);
     }
 
-    // 🟢 DEL B: Izvedba (Count + Paging + Projekcija + DEJANSKI KLIC NA BAZO)
     public async Task<PagedResult<TDto>> ExecuteQueryAsync<T, TDto>(IQueryable<T> baseQuery,
                                                                     QueryRequest request,
                                                                     Expression<Func<T, TDto>> projection,
                                                                     CancellationToken cancellationToken) where T : class
     {
-        // Pred izvedbo dodamo AsNoTracking za boljšo hitrost branja
         var finalQuery = baseQuery.AsNoTracking();
 
-        // 💥 Prvi klic na bazo (SELECT COUNT(*))
         var total = await finalQuery.CountAsync(cancellationToken);
 
-        // 💥 Drugi klic na bazo (SELECT ... z vsemi JOIN-i)
         var items = await finalQuery.ApplyPaging(request.Page, request.PageSize)
                                     .Select(projection)
                                     .ToListAsync(cancellationToken);

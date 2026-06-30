@@ -14,20 +14,17 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider
 
     public override async Task<AuthenticationState> GetAuthenticationStateAsync()
     {
-        // 1. Try to read the token saved by our AuthService
         var token = await _localStorage.GetItemAsync<string>("authToken");
         if (string.IsNullOrWhiteSpace(token)) return new AuthenticationState(_anonymous);
 
         List<Claim> claims = []; 
 
-        // Parse internal JWT roles/claims dynamically if needed
         claims.AddRange(ParseClaimsFromJwt(token));
 
         var identity = new ClaimsIdentity(claims, "JwtAuth");
         return new AuthenticationState(new ClaimsPrincipal(identity));
     }
 
-    // 3. Call this method when the user completes login to dynamically update the UI!
     public void NotifyUserLogin()
     {
         var authState = GetAuthenticationStateAsync();

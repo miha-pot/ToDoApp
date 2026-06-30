@@ -11,9 +11,7 @@ public static class LoggingExtensions
             .WriteTo.Console()
             .CreateLogger();
 
-
         builder.Host.UseSerilog();
-
 
         return builder;
     }

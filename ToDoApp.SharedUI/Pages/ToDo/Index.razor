@@ -6,7 +6,6 @@
 
 @implements IDisposable
 
-@* Smanjšamo vrhnji odmik (pt-4 namesto pt-16), da na telefonu ne izgubljamo dragocenega prostora *@
 <MudContainer MaxWidth="MaxWidth.Large" Class="pt-16 my-4">
     <MudStack Row="true" AlignItems="AlignItems.Center" Class="mud-w-100 px-2 mb-4">
 
@@ -26,7 +25,6 @@
         </MudButton>
 
     </MudStack>
-    @* Breakpoint.Sm poskrbi za avtomatsko transformacijo tabele v lepe mobilne kartice *@
     <MudTable T="ToDoResponse" ServerData="LoadServerData"
               Hover="true"
               Bordered="false"
@@ -37,7 +35,6 @@
               @ref="_table">
 
         <ToolBarContent>
-            @* Z uporabo MudGrid se orodna vrstica na telefonu lepo zloži v več vrstic namesto stiskanja *@
             <MudGrid Spacing="2" Class="align-center w-100 pa-1">
                 <MudItem xs="8" sm="5">
                     <MudTextField T="string"
@@ -64,7 +61,6 @@
                 <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
                     <MudTableSortLabel T="ToDoResponse" SortLabel="Level">Prioriteta</MudTableSortLabel>
 
-                    @* Filter gumb, ki se obarva, ko je filter aktiven *@
                     <MudMenu Icon="@Icons.Material.Filled.FilterList"
                              Color="@(_selectedPriorityFilter == null ? Color.Default : Color.Primary)"
                              Size="Size.Small"
@@ -73,7 +69,6 @@
                              TransformOrigin="Origin.TopCenter">
 
                         <div class="pa-4" style="min-width: 220px;">
-                            @* Spustni seznam z vsemi možnimi enum vrednostmi *@
                             <MudSelect T="Priority?"
                                        Label="Filtriraj prioriteto"
                                        Value="_selectedPriorityFilter"
@@ -111,7 +106,6 @@
                                    Class="pa-2" />
                 </div>
             </MudTd>
-            @* DataLabel je nujen, saj se na telefonu uporabi kot naslov podatka znotraj kartice *@
             <MudTd DataLabel="Naslov" Class="fw-semibold">@context.Title</MudTd>
             <MudTd DataLabel="Opis" Style="white-space: pre-wrap; word-break: break-word; max-width: 100%;">
                 @context.Description
@@ -122,7 +116,6 @@
                 </MudChip>
             </MudTd>
             <MudTd DataLabel="Oznake">
-                @* Row="true" poravna elemente v vrstico, Wrap="Wrap.Wrap" pa jih ovije ob pomanjkanju prostora *@
                 <MudStack Row="true" Wrap="Wrap.Wrap" Spacing="1">
                     @if (context.Tags != null && context.Tags.Any())
                     {
@@ -138,7 +131,6 @@
                     }
                     else
                     {
-                        @* Če opravilo nima tagov, prikažemo diskreten placeholder, da celica ne izpade povsem prazna *@
                         <MudText Typo="Typo.caption" Class="mud-text-secondary italic">Brez oznak</MudText>
                     }
                 </MudStack>
@@ -156,7 +148,6 @@
                     <MudIcon Icon="@Icons.Material.Filled.RadioButtonUnchecked" Color="Color.Warning" Size="Size.Medium" />
                 }
             </MudTd>
-            @* Na mobilnem načinu gumbe poravnamo levo (start), na namizju pa ostanejo desno poravnani *@
             <MudTd DataLabel="Akcije" Class="text-sm-right text-start">
                 <div class="d-inline-flex gap-1">
                     <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Info" Size="Size.Medium" OnClick="() => NavigateToEdit(context.Id)" Class="pa-2" />
@@ -174,7 +165,6 @@
         </LoadingContent>
 
         <PagerContent>
-            @* Na telefonu skrijemo napredne nastavitve števila vrstic na stran, da se gumbi ne stiskajo *@
             <MudTablePager RowsPerPageString="Vrstic:"
                            HideRowsPerPage="true"
                            InfoFormat="{first_item}-{last_item} od {all_items}" />
@@ -183,7 +173,6 @@
 </MudContainer>
 
 @code {
-    // Vsa tvoja koda v @code bloku ostane 100 % identična, ker se spreminja izključno vizualni HTML nivo!
     private MudTable<ToDoResponse> _table = null!;
     private CancellationTokenSource _cts = new();
     private Priority? _selectedPriorityFilter = null;

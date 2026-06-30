@@ -27,7 +27,7 @@ public class JwtService : IJwtService
             [
                 new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-                new Claim(JwtRegisteredClaimNames.Iat, now.ToString(),ClaimValueTypes.Integer64), //Issued at (date and time of token generation)
+                new Claim(JwtRegisteredClaimNames.Iat, now.ToString(),ClaimValueTypes.Integer64),
                 new Claim(ClaimTypes.NameIdentifier, user.Email!.ToString()),
                 new Claim(ClaimTypes.Email, user.Email!.ToString()),
                 new Claim(ClaimTypes.Name, user.FirstName!.ToString()),

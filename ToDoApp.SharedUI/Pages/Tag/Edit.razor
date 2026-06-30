@@ -110,9 +110,8 @@
     {
         get
         {
-            // Če je barva v modelu prazna, nastavimo privzeto barvo (npr. modro ali belo)
             if (string.IsNullOrWhiteSpace(_model.ColorHex))
-                return new MudColor("#594AE2"); // Privzeta MudBlazor Primary barva
+                return new MudColor("#594AE2");
 
             return new MudColor(_model.ColorHex);
         }
@@ -120,7 +119,6 @@
         {
             if (value != null)
             {
-                // Ob izbiri shranimo čisto HEX vrednost (npr. "#ff0000") nazaj v model
                 _model.ColorHex = value.Value;
             }
         }
@@ -130,9 +128,8 @@
     {
         get
         {
-            // Če je barva v modelu prazna, nastavimo privzeto barvo (npr. modro ali belo)
             if (string.IsNullOrWhiteSpace(_model.BgColorHex))
-                return new MudColor("#594AE2"); // Privzeta MudBlazor Primary barva
+                return new MudColor("#594AE2");
 
             return new MudColor(_model.BgColorHex);
         }
@@ -140,7 +137,6 @@
         {
             if (value != null)
             {
-                // Ob izbiri shranimo čisto HEX vrednost (npr. "#ff0000") nazaj v model
                 _model.BgColorHex = value.Value;
             }
         }
@@ -164,7 +160,6 @@
     {
         _response = ApiResponse<TagResponse>.Empty();
 
-        // 1. Ročno sprožimo MudBlazor validacijo forme pred pošiljanjem
         await _form.ValidateAsync();
 
         if (!_form.IsValid)
@@ -181,11 +176,6 @@
         if (result.IsSuccess)
         {
             NavigationManager.NavigateTo("/tag");
-        }
-        else
-        {
-            // Če strežnik vrne specifične napake, jih lahko preko _response preslikaš na formo
-            // (Odvisno od tega, kako imaš nastavljen ApplyServerErrors)
         }
 
         _isSubmitting = false;

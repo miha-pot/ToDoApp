@@ -26,7 +26,6 @@ public static class DependencyInjection
                 throw new InvalidOperationException("Connection string 'DbConnection' not found.");
 
             options.UseSqlServer(connectionString);
-            //options.UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking);
         });
 
         // Repositories

@@ -46,11 +46,7 @@
                                       OnAdornmentClick="TogglePasswordVisibility"
                                       Immediate="true"
                                       Class="mb-4" />
-                                      
-                        @* <div class="d-flex align-items-center justify-content-between mb-6">
-                <MudCheckBox T="bool" @bind-Value="_model.RememberMe" Label="Zapomni si me" Color="Color.Primary" Dense="true" />
-            </div> *@
-
+                               
                         <MudStack Row="true" Spacing="2" Class="mt-4">
                             <MudButton Variant="Variant.Outlined"
                                        Color="Color.Secondary"
@@ -76,41 +72,7 @@
                                     <MudText>Prijavi se</MudText>
                                 }
                             </MudButton>
-                           @*  <MudButton ButtonType="ButtonType.Submit"
-                                       Variant="Variant.Filled"
-                                       Color="Color.Primary"
-                                       FullWidth="true">
-                                @if (_isSubmitting)
-                                {
-                                    <MudProgressCircular Class="ms-n1 me-2" Size="Size.Small" Indeterminate="true" />
-                                    <MudText>Preverjanje...</MudText>
-                                }
-                                else
-                                {
-                                    <MudText>Prijavi se</MudText>
-                                }
-                            </MudButton> *@
-                           
                         </MudStack>
-
-
-                      @*   <MudButton Variant="Variant.Filled"
-                                   Color="Color.Primary"
-                                   Size="Size.Large"
-                                   FullWidth="true"
-                                   Disabled="@_isSubmitting"
-                                   OnClick="HandleLogin"
-                                   Class="rounded-pill py-3">
-                            @if (_isSubmitting)
-                            {
-                                <MudProgressCircular Class="ms-n1 me-2" Size="Size.Small" Indeterminate="true" />
-                                <MudText>Preverjanje...</MudText>
-                            }
-                            else
-                            {
-                                <MudText>Prijavi se</MudText>
-                            }
-                        </MudButton> *@
                     </MudForm>
 
                     <ApiErrorAlert Response="@_apiResponse" />
@@ -123,6 +85,7 @@
 @code {
     [CascadingParameter]
     private Task<AuthenticationState> AuthStateTask { get; set; } = null!;
+    private readonly CancellationTokenSource _cts = new();
 
     private MudForm _form = null!;
 
@@ -133,23 +96,18 @@
     private bool _isCheckingAuth = true;
 
     private ApiResponse<bool> _apiResponse = ApiResponse<bool>.Empty();
-    private readonly CancellationTokenSource _cts = new();
 
-    // Logika za skrito/vidno geslo
     private bool _passwordShow;
     private InputType _passwordInput = InputType.Password;
     private string _passwordInputIcon = Icons.Material.Filled.VisibilityOff;
 
     protected override async Task OnInitializedAsync()
     {
-        // 1. Pridobimo trenutno stanje avtentikacije iz kaskadnega parametra
         var authState = await AuthStateTask;
         var user = authState.User;
 
-        // 2. 🚀 Če je uporabnik že prijavljen (IsAuthenticated == true), ga preusmerimo stran!
         if (user.Identity is { IsAuthenticated: true })
         {
-            // forceLoad: false prepreči ponovno nalaganje cele aplikacije (WASM osveževanje)
             NavigationManager.NavigateTo("/todo", forceLoad: false);
         }
         else
@@ -160,10 +118,8 @@
 
     private async Task ClearFields()
     {
-        // 1. Počisti model
         _model = new LoginRequest();
 
-        // 3. Po potrebi ponovno inicializiraj formo
         StateHasChanged();
     }
 
@@ -197,7 +153,6 @@
 
         _isSubmitting = true;
 
-        // 2. Pošljemo zahtevek na klijentski Identity / Auth servis
         var response = await _authService.LoginAsync(_model, _cts.Token);
         _apiResponse = response;
 

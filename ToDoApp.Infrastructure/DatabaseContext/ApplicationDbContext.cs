@@ -48,13 +48,11 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
 
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
-        // Pridobimo trenutno prijavljenega uporabnika iz HTTP konteksta (iz JWT žetona)
         var currentUserId = _httpContextAccessor.HttpContext?.User?
             .FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "System";
 
         var currentTime = DateTime.UtcNow;
 
-        // Poiščemo vse entitete, ki implementirajo IAuditableEntity in so v stanju Added ali Modified
         var entries = ChangeTracker.Entries<IAuditableEntity>();
 
         foreach (var entry in entries)

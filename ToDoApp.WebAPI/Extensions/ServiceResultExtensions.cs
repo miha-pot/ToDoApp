@@ -9,13 +9,6 @@ public static class ServiceResultExtensions
     {
         if (result.IsSuccess)
         {
-            // If the service explicitly requested a 201 Created status, use it
-            //if (result.StatusCode == HttpStatusCode.Created)
-            //{
-            //    //return Results.Json(result.Value, statusCode: StatusCodes.Status201Created);
-            //    return Results.Ok(result.Value);
-            //}
-
             return Results.Ok(result.Value);
         }
 

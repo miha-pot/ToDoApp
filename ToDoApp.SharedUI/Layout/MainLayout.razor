@@ -33,9 +33,9 @@
         PaletteDark = new PaletteDark()
         {
             Primary = Colors.Blue.Default,
-            Surface = "#1e1e1e",      // Malo svetlejša od popolne črne
-            Background = "#121212",   // Glavno ozadje
-            BackgroundGray = "#272727", // Elementi v ozadju
+            Surface = "#1e1e1e",
+            Background = "#121212",
+            BackgroundGray = "#272727",
             AppbarText = Colors.Shades.White,
             AppbarBackground = "#1e1e1e",
             DrawerBackground = "#1e1e1e",
@@ -74,25 +74,21 @@
         {
             try
             {
-                // 1. Pridobi shranjeno temo
                 var storedTheme = await _localStorage.GetItemAsync<string>(ThemeKey);
                 if (!string.IsNullOrEmpty(storedTheme))
                 {
                     _isDarkMode = storedTheme == "dark";
                 }
 
-                // 2. Pridobi shranjeno stanje drawerja
                 var storedDrawer = await _localStorage.GetItemAsync<bool?>(DrawerKey);
                 _drawerOpen = storedDrawer ?? true;
 
-                // 3. Označi, da je branje končano in lahko varno pišemo ob klikih
                 _isInitialized = true;
 
                 StateHasChanged();
             }
             catch
             {
-                // Ignoriramo morebitne JS napake med nalaganjem strani
                 _isInitialized = true;
             }
         }

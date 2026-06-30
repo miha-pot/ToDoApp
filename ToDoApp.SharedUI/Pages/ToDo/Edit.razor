@@ -205,7 +205,6 @@
     {
         _response = ApiResponse<ToDoResponse>.Empty();
 
-        // 1. Ročno sprožimo MudBlazor validacijo forme pred pošiljanjem
         await _form.ValidateAsync();
 
         if (!_form.IsValid)
@@ -224,11 +223,6 @@
         if (result.IsSuccess)
         {
             NavigationManager.NavigateTo("/todo");
-        }
-        else
-        {
-            // Če strežnik vrne specifične napake, jih lahko preko _response preslikaš na formo
-            // (Odvisno od tega, kako imaš nastavljen ApplyServerErrors)
         }
 
         _isSubmitting = false;

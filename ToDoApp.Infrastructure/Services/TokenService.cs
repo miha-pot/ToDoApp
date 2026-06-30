@@ -53,7 +53,6 @@ public class TokenService : ITokenService
 
         var user = await _userManager.FindByEmailAsync(email);
 
-        // Move 'IsTokenNotValid' logic inside TokenService too!
         if (user == null || IsTokenNotValid(user, tokenDTO.RefreshToken))
         {
             return ServiceResult<AuthResponse>.Failure("Invalid Session",

@@ -54,8 +54,6 @@ public static class QueryableExtensions
                     .Take(pageSize);
     }
 
-    // --- Predicate builder ---
-
     private static Expression<Func<T, bool>>? BuildPredicate<T>(QueryFilter filter)
     {
         var bindingFlags = BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.Instance;
@@ -67,7 +65,6 @@ public static class QueryableExtensions
         var param = Expression.Parameter(typeof(T), "x");
         var member = Expression.Property(param, prop);
 
-        // Attempt to convert the string value to the property's type
         object? converted;
         try
         {
@@ -76,7 +73,7 @@ public static class QueryableExtensions
         }
         catch
         {
-            return null; // Skip invalid conversions instead of throwing
+            return null;
         }
 
         var constant = Expression.Constant(converted, prop.PropertyType);
@@ -90,7 +87,6 @@ public static class QueryableExtensions
             QueryFilterOperator.LessThan => Expression.LessThan(member, constant),
             QueryFilterOperator.LessThanOrEqual => Expression.LessThanOrEqual(member, constant),
 
-            // String-only operators
             QueryFilterOperator.Contains => StringMethod(member, constant, "Contains"),
             QueryFilterOperator.StartsWith => StringMethod(member, constant, "StartsWith"),
             QueryFilterOperator.EndsWith => StringMethod(member, constant, "EndsWith"),

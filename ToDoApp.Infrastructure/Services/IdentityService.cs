@@ -126,7 +126,6 @@ public class IdentityService : IIdentityService
     {
         ApplicationUser? currentUser;
 
-        //Has password reset been triggered for logged user or not
         if (!string.IsNullOrEmpty(resetPassRequest.Email))
         {
             currentUser = await _userManager.FindByEmailAsync(resetPassRequest.Email);
