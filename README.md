@@ -2,6 +2,10 @@
 
 A high-performance Fullstack task management application built using the latest Microsoft .NET technologies and advanced architectural patterns. This repository showcases a production-ready enterprise solution focusing on security, reactive state management, clean boundaries, and dynamic localization.
 
+Dashboard
+<img width="2550" height="1293" alt="slika" src="https://github.com/user-attachments/assets/75febb08-de63-4c7f-a049-cad3b4408b83" />
+
+List of Todo's
 <img width="1908" height="947" alt="slika" src="https://github.com/user-attachments/assets/b8f2d68d-7130-46c1-b6ea-a8a9572537b0" />
 
 
