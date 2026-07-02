@@ -6,7 +6,8 @@ Dashboard
 <img width="2550" height="1293" alt="slika" src="https://github.com/user-attachments/assets/75febb08-de63-4c7f-a049-cad3b4408b83" />
 
 List of Todo's
-<img width="1908" height="947" alt="slika" src="https://github.com/user-attachments/assets/b8f2d68d-7130-46c1-b6ea-a8a9572537b0" />
+<img width="2543" height="1312" alt="slika" src="https://github.com/user-attachments/assets/2da4a531-9f9b-415e-b60f-3d72c1262d1e" />
+
 
 
 ## 🏗️ Architecture & Technology Stack
