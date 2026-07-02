@@ -4,7 +4,6 @@ using ToDoApp.Application.RepositoryContracts;
 using ToDoApp.Application.ServiceContracts;
 using ToDoApp.Application.ServiceContracts.Identity;
 using ToDoApp.Application.Services;
-using ToDoApp.Application.Services.Identity;
 using ToDoApp.Domain.RepositoryContracts;
 using ToDoApp.Infrastructure.DatabaseContext;
 using ToDoApp.Infrastructure.Repositories;
@@ -56,7 +55,8 @@ public static class DependencyInjection
 
                 policyBuilder.WithOrigins(allowedOrigins)
                              .AllowAnyMethod()
-                             .AllowAnyHeader();
+                             .AllowAnyHeader()
+                             .AllowCredentials();
             });
         });
 

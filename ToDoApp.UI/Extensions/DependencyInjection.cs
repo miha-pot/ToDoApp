@@ -41,11 +41,20 @@ public static class DependencyInjection
             BaseAddress = new Uri(builder.HostEnvironment.BaseAddress)
         });
 
+        var apiBaseUrl = new Uri("https://localhost:7186/api/v1/");
+
         services.AddHttpClient<ApiService>(options =>
         {
-            options.BaseAddress = new Uri("https://localhost:7186/api/v1/");
+            options.BaseAddress = apiBaseUrl;
             options.Timeout = TimeSpan.FromSeconds(30);
-        }).AddHttpMessageHandler<BlazorAuthorizationHandler>();
+        })
+        .AddHttpMessageHandler<BlazorAuthorizationHandler>();
+
+        services.AddHttpClient("RefreshClient", options =>
+        {
+            options.BaseAddress = apiBaseUrl;
+            options.Timeout = TimeSpan.FromSeconds(30);
+        });
 
         return services;
     }
@@ -64,7 +73,7 @@ public static class DependencyInjection
 
     public static IServiceCollection AddSecurityServices(this IServiceCollection services)
     {
-        services.AddTransient<BlazorAuthorizationHandler>();
+        services.AddScoped<BlazorAuthorizationHandler>();
         services.AddCascadingAuthenticationState();
         services.AddAuthorizationCore();
         services.AddScoped<AuthenticationStateProvider, CustomAuthenticationStateProvider>();

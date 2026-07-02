@@ -11,9 +11,8 @@ public static class FluentValidationExtensions
             if (model is not T typedModel)
                 return [];
 
-            var result = await validator.ValidateAsync(
-                ValidationContext<T>.CreateWithOptions(typedModel, x => x.IncludeProperties(propertyName))
-            );
+            var validationContext = ValidationContext<T>.CreateWithOptions(typedModel, x => x.IncludeProperties(propertyName));
+            var result = await validator.ValidateAsync(validationContext);
 
             if (result.IsValid)
                 return [];

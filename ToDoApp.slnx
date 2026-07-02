@@ -7,7 +7,8 @@
     <Project Path="ToDoApp.WebAPI/ToDoApp.WebAPI.csproj" />
   </Folder>
   <Folder Name="/src/Frontend/">
-    <Project Path="ToDoApp.UI/ToDoApp.UI.csproj" Id="2802be6a-07ba-4017-a0dd-bdaf27bddec7" />
+    <Project Path="ToDoApp.Maui/ToDoApp.Maui.csproj" Id="bb993199-ce39-4d70-a760-dc2fe0ab8bcb" />
+    <Project Path="ToDoApp.UI/ToDoApp.Web.csproj" Id="2802be6a-07ba-4017-a0dd-bdaf27bddec7" />
   </Folder>
   <Folder Name="/src/Shared/">
     <Project Path="ToDoApp.Shared/ToDoApp.Shared.csproj" Id="5fc55d8e-c1ca-46a9-bd62-4fa35341bac0" />

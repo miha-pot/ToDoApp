@@ -1,6 +1,5 @@
 ﻿@using Microsoft.AspNetCore.Components.Routing
 @inject IDataStorage _localStorage
-@inject NavigationManager NavigationManager
 
 <MudDrawer Open="SideMenuOpen"
            OpenChanged="SideMenuOpenChanged"
@@ -11,6 +10,7 @@
         <MudNavLink Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Home" href="/">Home</MudNavLink>
         <AuthorizeView>
             <Authorized>
+                <MudNavLink Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Dashboard" href="/dashboard">Dashboard</MudNavLink>
                 <MudNavMenu>
                     <MudNavGroup Title="To do" Icon="@Icons.Material.Filled.Storage" ExpandIcon="@Icons.Material.Filled.ExpandMore" Expanded="false">
 

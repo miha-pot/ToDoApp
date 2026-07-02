@@ -9,4 +9,5 @@ public interface ITokenService
 {
     Task<AuthResponse> CreateAuthResponseAsync(ApplicationUser? user);
     Task<ServiceResult<AuthResponse>> RefreshSessionAsync(TokenRequest tokenDTO);
+    Task<ServiceResult<AuthResponse>> RevokeRefreshTokenAsync(TokenRequest token);
 }

@@ -10,33 +10,52 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider
     private readonly IDataStorage _localStorage;
     private readonly ClaimsPrincipal _anonymous = new(new ClaimsIdentity());
 
-    public CustomAuthenticationStateProvider(IDataStorage localStorage) => _localStorage = localStorage;
+    public CustomAuthenticationStateProvider(IDataStorage localStorage)
+    {
+        _localStorage = localStorage;
+    }
 
     public override async Task<AuthenticationState> GetAuthenticationStateAsync()
     {
         var token = await _localStorage.GetItemAsync<string>("authToken");
-        if (string.IsNullOrWhiteSpace(token)) return new AuthenticationState(_anonymous);
+        if (string.IsNullOrWhiteSpace(token))
+            return new AuthenticationState(_anonymous);
 
-        List<Claim> claims = []; 
-
-        claims.AddRange(ParseClaimsFromJwt(token));
-
+        var claims = ParseClaimsFromJwt(token).ToList();
         var identity = new ClaimsIdentity(claims, "JwtAuth");
+
         return new AuthenticationState(new ClaimsPrincipal(identity));
     }
 
-    public void NotifyUserLogin()
+    public async Task NotifyUserLogin(string token)
     {
-        var authState = GetAuthenticationStateAsync();
-        NotifyAuthenticationStateChanged(authState);
+        var claims = ParseClaimsFromJwt(token);
+        var identity = new ClaimsIdentity(claims, "JwtAuth");
+        var user = new ClaimsPrincipal(identity);
+
+        NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(user)));
     }
 
     private IEnumerable<Claim> ParseClaimsFromJwt(string jwt)
     {
         var payload = jwt.Split('.')[1];
         var jsonBytes = ParseBase64WithoutPadding(payload);
-        var keyValuePairs = JsonSerializer.Deserialize<Dictionary<string, object>>(jsonBytes);
-        return keyValuePairs!.Select(kvp => new Claim(kvp.Key, kvp.Value.ToString()!));
+        using var doc = JsonDocument.Parse(jsonBytes);
+
+        var claims = new List<Claim>();
+        foreach (var prop in doc.RootElement.EnumerateObject())
+        {
+            if (prop.Value.ValueKind == JsonValueKind.Array)
+            {
+                claims.AddRange(prop.Value.EnumerateArray()
+                    .Select(v => new Claim(prop.Name, v.ToString())));
+            }
+            else
+            {
+                claims.Add(new Claim(prop.Name, prop.Value.ToString()));
+            }
+        }
+        return claims;
     }
 
     private byte[] ParseBase64WithoutPadding(string base64)
@@ -46,6 +65,7 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider
             case 2: base64 += "=="; break;
             case 3: base64 += "="; break;
         }
+
         return Convert.FromBase64String(base64);
     }
 
@@ -54,8 +74,6 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider
         var anonymousIdentity = new ClaimsIdentity();
         var anonymousUser = new ClaimsPrincipal(anonymousIdentity);
 
-        var anonymousState = Task.FromResult(new AuthenticationState(anonymousUser));
-
-        NotifyAuthenticationStateChanged(anonymousState);
+        NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(anonymousUser)));
     }
 }

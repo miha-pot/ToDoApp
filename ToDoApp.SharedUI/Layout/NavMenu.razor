@@ -1,29 +1,37 @@
 ﻿@using ToDoApp.SharedUI.States
 @inject IDataStorage _localStorage
 @inject IAuthService _authService
-
-@inject NavigationManager NavigationManager
 @inject LanguageState LangState
 
-<MudAppBar Elevation="1" Color="Color.Primary">
+@implements IDisposable
+
+<MudAppBar Elevation="1" Color="Color.Primary" Class="px-2 px-sm-4">
     <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="OnDrawerToggle" />
-    <MudText Typo="Typo.h5" Class="ml-3">Task manager</MudText>
+
+    <MudText Typo="Typo.h6" Class="ml-2 ml-sm-3 d-none d-sm-block">Task manager</MudText>
+    <MudText Typo="Typo.h6" Class="ml-2 d-sm-none">TM</MudText>
 
     <MudSpacer />
 
     <MudMenu StartIcon="@Icons.Material.Filled.Language"
-             Label="@LangState.CurrentLanguage.ToUpper()"
              Color="Color.Inherit"
-             Variant="Variant.Text">
-        <MudMenuItem OnClick="@(() => ChangeLanguage("sl"))">SLO</MudMenuItem>
-        <MudMenuItem OnClick="@(() => ChangeLanguage("en"))">ENG</MudMenuItem>
-        <MudMenuItem OnClick="@(() => ChangeLanguage("de"))">DEU</MudMenuItem>
+             Variant="Variant.Text"
+             Class="me-1">
+        <MudMenuItem OnClick="@(() => ChangeLanguage("sl"))">
+            <MudText Style="@(LangState.CurrentLanguage == "sl" ? "font-weight:700;" : "")">SLO</MudText>
+        </MudMenuItem>
+        <MudMenuItem OnClick="@(() => ChangeLanguage("en"))">
+            <MudText Style="@(LangState.CurrentLanguage == "en" ? "font-weight:700;" : "")">ENG</MudText>
+        </MudMenuItem>
+        <MudMenuItem OnClick="@(() => ChangeLanguage("de"))">
+            <MudText Style="@(LangState.CurrentLanguage == "de" ? "font-weight:700;" : "")">DEU</MudText>
+        </MudMenuItem>
     </MudMenu>
 
     <MudIconButton Icon="@(IsDarkMode ? Icons.Material.Filled.WbSunny : Icons.Material.Filled.NightsStay)"
                    Color="Color.Inherit"
                    OnClick="ToggleTheme"
-                   Class="me-2" />
+                   Class="me-1 me-sm-2" />
 
     <AuthorizeView Context="authContext">
         <Authorized>
@@ -32,17 +40,14 @@
                     <MudIconButton Icon="@Icons.Material.Filled.AccountCircle"
                                    Color="Color.Inherit"
                                    Size="Size.Large"
-                                   OnClick="@(args => _accountMenu!.ToggleMenuAsync(args))">
-                    </MudIconButton>
-
+                                   OnClick="@(args => _accountMenu!.ToggleMenuAsync(args))" />
                 </ActivatorContent>
                 <ChildContent>
                     <div class="px-4 py-2" style="min-width: 160px;">
-                        <MudText Typo="Typo.body2" Style="font-weight: 700;">@authContext.User.Identity?.Name  </MudText>
+                        <MudText Typo="Typo.body2" Style="font-weight: 700;">@authContext.User.Identity?.Name</MudText>
                         <MudText Typo="Typo.caption" Color="Color.Secondary">Logged in</MudText>
                     </div>
                     <MudDivider />
-
                     <MudMenuItem Icon="@Icons.Material.Filled.Logout" OnClick="LogoutAsync" IconColor="Color.Error">
                         <MudText Color="Color.Error">Logout</MudText>
                     </MudMenuItem>
@@ -51,11 +56,20 @@
         </Authorized>
 
         <NotAuthorized>
+            <MudIconButton Icon="@Icons.Material.Filled.Login"
+                           Color="Color.Inherit"
+                           Href="/login"
+                           Class="d-sm-none" />
+            <MudIconButton Icon="@Icons.Material.Filled.AppRegistration"
+                           Color="Color.Inherit"
+                           Href="/register"
+                           Class="d-sm-none ms-1" />
+
             <MudButton Variant="Variant.Text"
                        Color="Color.Inherit"
                        Href="/login"
                        StartIcon="@Icons.Material.Filled.Login"
-                       Class="rounded-pill px-5 me-3 fw-semibold hover-subtle">
+                       Class="d-none d-sm-inline-flex rounded-pill px-5 me-3 fw-semibold hover-subtle">
                 Login
             </MudButton>
 
@@ -63,7 +77,7 @@
                        Color="Color.Secondary"
                        Href="/register"
                        StartIcon="@Icons.Material.Filled.AppRegistration"
-                       Class="rounded-pill px-5 fw-bold hover-lift">
+                       Class="d-none d-sm-inline-flex rounded-pill px-5 fw-bold hover-lift">
                 Register
             </MudButton>
         </NotAuthorized>
@@ -75,6 +89,7 @@
     [Parameter] public EventCallback<bool> IsDarkModeChanged { get; set; }
     [Parameter] public EventCallback OnDrawerToggle { get; set; }
     private MudMenu? _accountMenu;
+    CancellationTokenSource _cts = new CancellationTokenSource();
 
     private async Task ChangeLanguage(string cultureCode)
     {
@@ -91,7 +106,14 @@
 
     private async Task LogoutAsync()
     {
-        await _authService.LogoutAsync();
+        await _authService.LogoutAsync(_cts.Token);
+
         NavigationManager.NavigateTo("/login");
+    }
+
+    public void Dispose()
+    {
+        _cts.Cancel();
+        _cts.Dispose();
     }
 }

@@ -26,10 +26,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\ToDoApp.Application\ToDoApp.Application.csproj" />
-    <ProjectReference Include="..\ToDoApp.Domain\ToDoApp.Domain.csproj" />
     <ProjectReference Include="..\ToDoApp.Infrastructure\ToDoApp.Infrastructure.csproj" />
-    <ProjectReference Include="..\ToDoApp.Shared\ToDoApp.Shared.csproj" />
   </ItemGroup>
 
 </Project>

@@ -33,6 +33,10 @@ public class ApiService
             return ApiResponse<TResponse>.Failure(title: problem?.Title ?? "Data Fetch Failed",
                                                   detail: problem?.Detail ?? "An error occurred while retrieving data from the server.", statusCode);
         }
+        catch (UnauthorizedAccessException ex)
+        {
+            return ApiResponse<TResponse>.Failure("Network Error", $"Unathorized: {ex.Message}", 503);
+        }
         catch (Exception ex)
         {
             Console.WriteLine($"Network/Serialization Error during GET: {ex.Message}");
@@ -60,11 +64,15 @@ public class ApiService
             return ApiResponse<TResponse>.Failure(title: problem?.Title ?? "Data Fetch Failed",
                                                   detail: problem?.Detail ?? "An error occurred while retrieving data from the server.", statusCode);
         }
+        catch (UnauthorizedAccessException ex)
+        {
+            return ApiResponse<TResponse>.Failure("Network Error", $"Unathorized: {ex.Message}", 503);
+        }
         catch (Exception ex)
         {
             Console.WriteLine($"Network/Serialization Error during GET: {ex.Message}");
 
-            return ApiResponse<TResponse>.Failure("Network Error", "Unable to communicate with the server.", 503);
+            return ApiResponse<TResponse>.Failure("Network Error", $"Unable to communicate with the server: {ex.Message}", 503);
         }
     }
 
@@ -93,6 +101,10 @@ public class ApiService
                                                   detail: problem?.Detail ?? "Unknown error!",
                                                   statusCode,
                                                   errors: problem?.Errors);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return ApiResponse<TResponse>.Failure("Network Error", $"Unathorized: {ex.Message}", 503);
         }
         catch (Exception ex)
         {
@@ -129,6 +141,10 @@ public class ApiService
                                                   detail: problem?.Detail ?? "Unknown error!",
                                                   statusCode,
                                                   errors: problem?.Errors);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return ApiResponse<TResponse>.Failure("Network Error", $"Unathorized: {ex.Message}", 503);
         }
         catch (Exception ex)
         {
@@ -169,6 +185,10 @@ public class ApiService
                                                   statusCode,
                                                   errors: problem?.Errors);
         }
+        catch (UnauthorizedAccessException ex)
+        {
+            return ApiResponse<TResponse>.Failure("Network Error", $"Unathorized: {ex.Message}", 503);
+        }
         catch (Exception ex)
         {
             Console.WriteLine($"Network/Serialization Error: {ex.Message}");
@@ -203,6 +223,10 @@ public class ApiService
             return ApiResponse<string>.Failure(title: problem?.Title ?? "Deletion Failed",
                                                detail: problem?.Detail ?? "The server rejected the deletion request.",
                                                statusCode);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return ApiResponse<string>.Failure("Network Error", $"Unathorized: {ex.Message}", 503);
         }
         catch (Exception ex)
         {

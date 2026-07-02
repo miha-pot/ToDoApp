@@ -2,7 +2,9 @@
 using ToDoApp.Shared.AuthDTO;
 using ToDoApp.Shared.AuthDTO.Login;
 using ToDoApp.Shared.AuthDTO.Register;
+using ToDoApp.Shared.AuthDTO.Token;
 using ToDoApp.Shared.Common;
+using ToDoApp.SharedUI.AuthHandlers;
 using ToDoApp.SharedUI.Providers;
 using ToDoApp.SharedUI.ServiceContracts;
 
@@ -14,15 +16,19 @@ public class AuthService : IAuthService
     private readonly IDataStorage _localStorage;
 
     private readonly AuthenticationStateProvider _authStateProvider;
+    private readonly BlazorAuthorizationHandler _authHandler;
+
     private readonly string _endpoint = "auth";
 
     public AuthService(ApiService apiService,
                        IDataStorage localStorage,
-                       AuthenticationStateProvider authStateProvider)
+                       AuthenticationStateProvider authStateProvider,
+                       BlazorAuthorizationHandler authHandler)
     {
         _apiService = apiService;
         _localStorage = localStorage;
         _authStateProvider = authStateProvider;
+        _authHandler = authHandler;
     }
 
     public async Task<ApiResponse<bool>> LoginAsync(LoginRequest request, CancellationToken token)
@@ -65,15 +71,26 @@ public class AuthService : IAuthService
     private async Task SetUserInLocalStorage(AuthResponse response)
     {
         await _localStorage.SetItemAsync("authToken", response.Token);
-        await _localStorage.SetItemAsync("refreshToken", response.RefreshToken);
+        //await _localStorage.SetItemAsync("refreshToken", response.RefreshToken);
 
-        ((CustomAuthenticationStateProvider)_authStateProvider).NotifyUserLogin();
+        _authHandler.ResetLogoutState();
+        await ((CustomAuthenticationStateProvider)_authStateProvider).NotifyUserLogin(response.Token);
     }
 
-    public async Task LogoutAsync()
+    public async Task LogoutAsync(CancellationToken cancellationToken)
     {
+        string? token = await _localStorage.GetItemAsync<string>("authToken");
+
+        if (string.IsNullOrEmpty(token))
+        {
+            return;
+        }
+
+        TokenRequest tokenRequest = new() { Token = token };
+
+        await _apiService.PostAsync<TokenRequest, object>("auth/logout", tokenRequest, cancellationToken);
+
         await _localStorage.RemoveItemAsync("authToken");
-        await _localStorage.RemoveItemAsync("refreshToken");
 
         ((CustomAuthenticationStateProvider)_authStateProvider).NotifyUserLogout();
     }

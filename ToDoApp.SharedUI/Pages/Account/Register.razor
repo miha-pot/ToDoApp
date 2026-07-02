@@ -1,10 +1,5 @@
 ﻿@page "/register"
 
-@inject ISnackbar Snackbar
-@inject IAuthService _authService
-
-@implements IDisposable
-
 <MudGrid Justify="Justify.Center" Style="min-height: 85vh; align-items: center; padding: 16px;">
     <MudItem xs="12" sm="10" md="7" lg="5">
 
@@ -20,7 +15,9 @@
                     <div style="text-align: center;" class="mb-6">
                         <MudIcon Icon="@Icons.Material.Filled.PersonAdd" Color="Color.Primary" Size="Size.Large" Class="mb-2" />
                         <MudText Typo="Typo.h5" Color="Color.Primary" Style="font-weight: 700;">Ustvari račun</MudText>
-                        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mt-1">Pridružite se nam za učinkovito upravljanje delovnih nalogov.</MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mt-1">
+                            Pridružite se nam za učinkovito upravljanje delovnih nalogov.
+                        </MudText>
                     </div>
 
                     <MudForm @ref="_form" Model="@model" Validation="@(_validator.ValidateValue())">
@@ -116,69 +113,3 @@
         }
     </MudItem>
 </MudGrid>
-
-@code {
-    [CascadingParameter]
-    private Task<AuthenticationState> AuthStateTask { get; set; } = null!;
-    private readonly CancellationTokenSource _cts = new();
-
-    private MudForm _form = null!;
-
-    private RegisterRequest model = new();
-    private RegisterRequestValidator _validator = new();
-
-    private bool _isSubmitting;
-    private bool _isCheckingAuth = true;
-
-    private ApiResponse<bool> _apiResponse = ApiResponse<bool>.Empty();
-
-    protected override async Task OnInitializedAsync()
-    {
-        var authState = await AuthStateTask;
-        var user = authState.User;
-
-        if (user.Identity is { IsAuthenticated: true })
-        {
-            NavigationManager.NavigateTo("/todo", forceLoad: false);
-        }
-        else
-        {
-            _isCheckingAuth = false;
-        }
-    }
-
-    private async Task HandleRegistration()
-    {
-        _apiResponse = ApiResponse<bool>.Empty();
-
-        await _form.ValidateAsync();
-
-        if (!_form.IsValid)
-        {
-            Snackbar.Add("Form not valid! Check fields.", MudBlazor.Severity.Error);
-            return;
-        }
-
-        _isSubmitting = true;
-
-        var result = await _authService.RegisterAsync(model, _cts.Token);
-        _apiResponse = result;
-        if (result.IsSuccess)
-        {
-            Snackbar.Add("User profile was created! Redirecting...", MudBlazor.Severity.Success);
-            NavigationManager.NavigateTo("/");
-        }
-        else
-        {
-            Snackbar.Add("Error while creating profile! Check fields..", MudBlazor.Severity.Error);
-        }
-
-        _isSubmitting = false;
-    }
-
-    public void Dispose()
-    {
-        _cts.Cancel();
-        _cts.Dispose();
-    }
-}

@@ -12,7 +12,10 @@ public static class TagEndpoints
 {
     public static IEndpointRouteBuilder MapTagEndpoints(this IEndpointRouteBuilder app)
     {
-        var tagGroup = app.MapGroup("/tags").MapToApiVersion(1, 0).RequireAuthorization();
+        var tagGroup = app.MapGroup("/tags")
+                          .MapToApiVersion(1, 0)
+                          .RequireAuthorization()
+                          .RequireRateLimiting("api-policy");
 
         tagGroup.MapPost("", GetItems);
 

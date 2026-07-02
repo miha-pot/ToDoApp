@@ -7,7 +7,7 @@ using ToDoApp.Shared.AuthDTO;
 using ToDoApp.Shared.AuthDTO.Token;
 using ToDoApp.Shared.Common;
 
-namespace ToDoApp.Application.Services.Identity;
+namespace ToDoApp.Infrastructure.Services;
 
 public class TokenService : ITokenService
 {
@@ -62,6 +62,38 @@ public class TokenService : ITokenService
 
         var authResponse = await CreateAuthResponseAsync(user);
         return ServiceResult<AuthResponse>.Success(authResponse);
+    }
+
+    public async Task<ServiceResult<AuthResponse>> RevokeRefreshTokenAsync(TokenRequest token)
+    {
+        ClaimsPrincipal? principal = _jwtService.GetPrincipalFromJwtToken(token.Token);
+
+        if (principal == null)
+        {
+            return ServiceResult<AuthResponse>.Failure("User not found!",
+                                                       "",
+                                                       HttpStatusCode.NotFound);
+        }
+
+        var email = principal.FindFirstValue(ClaimTypes.Email);
+
+        if (string.IsNullOrEmpty(email))
+        {
+            return ServiceResult<AuthResponse>.Failure("Invalid Token",
+                                                       "",
+                                                       HttpStatusCode.BadRequest);
+        }
+
+        var user = await _userManager.FindByEmailAsync(email);
+        if (user is not null)
+        {
+            user.RefreshToken = null;
+            user.RefreshTokenExpirationDateTime = DateTime.MinValue;
+
+            await _userManager.UpdateAsync(user);
+        }
+
+        return ServiceResult<AuthResponse>.Success(new AuthResponse(), HttpStatusCode.NoContent);
     }
 
     private static bool IsTokenNotValid(ApplicationUser? user, string refreshToken) =>

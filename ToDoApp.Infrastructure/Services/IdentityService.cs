@@ -71,7 +71,9 @@ public class IdentityService : IIdentityService
                                                        HttpStatusCode.BadRequest);
         }
 
-        SignInResult result = await _signInManager.CheckPasswordSignInAsync(user, loginRequest.Password, lockoutOnFailure: true);
+        SignInResult result = await _signInManager.CheckPasswordSignInAsync(user,
+                                                                            loginRequest.Password,
+                                                                            lockoutOnFailure: true);
 
         if (result.IsLockedOut)
         {
@@ -158,8 +160,10 @@ public class IdentityService : IIdentityService
         return ServiceResult<string>.Success("Your password was successfuly changed!", HttpStatusCode.Accepted);
     }
 
-    public async Task Logout()
+    public async Task Logout(TokenRequest tokenRequest)
     {
+        await _tokenService.RevokeRefreshTokenAsync(tokenRequest);
+
         await _signInManager.SignOutAsync();
     }
 }

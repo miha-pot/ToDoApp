@@ -1,221 +1,198 @@
 ﻿@page "/todo/create"
-@using ToDoApp.Shared.TagDTO.Queries
+@attribute [Authorize]
 
-@inject IToDoService _toDoService
-@inject ITagService _tagService
-@inject ISnackbar Snackbar
+<MudContainer MaxWidth="MaxWidth.Large" Class="pt-10 pt-md-16 my-4">
+    <MudGrid Justify="Justify.Center" Class="px-2">
+        <MudItem xs="12" sm="10" md="7" lg="6">
+            <MudCard Elevation="4" Class="rounded-lg border-light">
+                
+                <MudCardHeader Class="px-6 py-5 border-bottom">
+                    <CardHeaderContent>
+                        <div class="d-flex align-center gap-3">
+                            <div class="icon-container rounded-lg pa-2 bg-primary-light">
+                                <MudIcon Icon="@Icons.Material.Filled.PlaylistAdd" Color="Color.Primary" Size="Size.Medium" />
+                            </div>
+                            <div>
+                                <MudText Typo="Typo.h6" Class="font-weight-bold">Ustvari novo opravilo</MudText>
+                                <MudText Typo="Typo.caption" Class="text-muted">Vnesite podrobnosti za dodelitev novega delovnega naloga.</MudText>
+                            </div>
+                        </div>
+                    </CardHeaderContent>
+                </MudCardHeader>
 
-@implements IDisposable
+                <MudCardContent Class="pa-6">
+                    <MudForm @ref="_form" Model="@_model" Validation="@(_validator.ValidateValue())">
+                        <MudGrid Spacing="3">
+                            
+                            <MudItem xs="12">
+                                <MudTextField @bind-Value="_model.Title"
+                                              Label="Naslov opravila"
+                                              Variant="Variant.Outlined"
+                                              Placeholder="Npr. Pregled CNC stroja..."
+                                              For="@(() => _model.Title)"
+                                              Immediate="true"
+                                              Margin="Margin.Dense" />
+                            </MudItem>
 
-<MudGrid Justify="Justify.Center" Style="min-height: 85vh; align-items: center; padding: 16px;">
-    <MudItem xs="12" sm="8" md="5" lg="4">
-        <MudCard Elevation="3" Class="rounded-lg">
+                            <MudItem xs="12">
+                                <MudTextField @bind-Value="_model.Description"
+                                              Label="Podroben opis"
+                                              Variant="Variant.Outlined"
+                                              Lines="3"
+                                              Placeholder="Vpišite natančna navodila ali opombe glede opravila..."
+                                              For="@(() => _model.Description)"
+                                              Immediate="true" />
+                            </MudItem>
 
-            <MudCardHeader Style="background-color: var(--mud-palette-primary); color: white;" Class="py-4">
-                <CardHeaderContent>
-                    <div class="d-flex align-center gap-2">
-                        <MudIcon Icon="@Icons.Material.Filled.AddCircle" Color="Color.Inherit" />
-                        <MudText Typo="Typo.h6" Style="font-weight: 600;">Dodaj Novo Opravilo</MudText>
-                    </div>
-                </CardHeaderContent>
-            </MudCardHeader>
+                            <MudItem xs="12" sm="6">
+                                <MudDatePicker @bind-Date="_model.DueDate"
+                                               Label="Rok izvedbe"
+                                               Editable="true"
+                                               Variant="Variant.Outlined"
+                                               Placeholder="Izberite datum..."
+                                               For="@(() => _model.DueDate)"
+                                               Margin="Margin.Dense"
+                                               IconSize="Size.Small" />
+                            </MudItem>
 
-            <MudCardContent Class="pa-6">
-                <MudForm @ref="_form" Model="@_model" Validation="@(_validator.ValidateValue())">
-
-                    <MudGrid Spacing="3">
-
-                        <MudItem xs="12">
-                            <MudTextField @bind-Value="_model.Title"
-                                          Label="Naslov opravila"
-                                          Variant="Variant.Outlined"
-                                          Placeholder="Npr. Pripravi poročilo..."
-                                          For="@(() => _model.Title)"
-                                          Immediate="true" />
-                        </MudItem>
-
-                        <MudItem xs="12">
-                            <MudTextField @bind-Value="_model.Description"
-                                          Label="Opis opravila"
-                                          Variant="Variant.Outlined"
-                                          Lines="3"
-                                          Placeholder="Podrobnejši opis opravila..."
-                                          For="@(() => _model.Description)"
-                                          Immediate="true" />
-                        </MudItem>
-
-                        <MudItem xs="12" sm="6">
-                            <MudDatePicker @bind-Date="_model.DueDate"
-                                           Label="Rok za izvedbo"
-                                           Editable="true"
+                            <MudItem xs="12" sm="6">
+                                <MudSelect T="Priority"
+                                           @bind-Value="_model.Level"
+                                           Label="Nivo prioritete"
                                            Variant="Variant.Outlined"
-                                           Placeholder="Izberite datum..."
-                                           For="@(() => _model.DueDate)" />
-                        </MudItem>
+                                           Margin="Margin.Dense"
+                                           For="@(() => _model.Level)">
+                                    @foreach (Priority lvl in Enum.GetValues(typeof(Priority)))
+                                    {
+                                        <MudSelectItem Value="@lvl">@lvl.GetDisplayName()</MudSelectItem>
+                                    }
+                                </MudSelect>
+                            </MudItem>
 
-                        <MudItem xs="12" sm="6">
-                            <MudSelect T="Priority"
-                                       @bind-Value="_model.Level"
-                                       Label="Prioriteta / Nivo"
-                                       Variant="Variant.Outlined"
-                                       For="@(() => _model.Level)">
-                                @foreach (Priority lvl in Enum.GetValues(typeof(Priority)))
-                                {
-                                    <MudSelectItem Value="@lvl">@lvl.GetDisplayName()</MudSelectItem>
-                                }
-                            </MudSelect>
-                        </MudItem>
+                            <MudItem xs="12" Class="py-1">
+                                <div class="switch-container rounded-lg pa-2 border-dashed">
+                                    <MudSwitch @bind-Value="_model.IsCompleted"
+                                               Color="Color.Success"
+                                               Label="Označi to opravilo kot takoj zaključeno"
+                                               Class="font-weight-semibold ma-0" />
+                                </div>
+                            </MudItem>
 
-                        <MudItem xs="12" Class="py-0">
-                            <MudSwitch @bind-Value="_model.IsCompleted"
-                                       Color="Color.Primary"
-                                       Label="Označi kot zaključeno"
-                                       Style="font-weight: 600;" />
-                        </MudItem>
+                            <MudItem xs="12">
+                                <MudSelect T="TagResponse"
+                                           Label="Oznake / Delovne skupine"
+                                           MultiSelection="true"
+                                           @bind-SelectedValues="SelectedTags"
+                                           MultiSelectionTextFunc="GetMultiSelectionText"
+                                           Variant="Variant.Outlined"
+                                           Margin="Margin.Dense"
+                                           AdornmentIcon="@Icons.Material.Filled.Label"
+                                           AdornmentColor="Color.Primary"
+                                           AnchorOrigin="Origin.BottomCenter">
+                                    @foreach (var tag in _tagList)
+                                    {
+                                        <MudSelectItem T="TagResponse" Value="@tag">
+                                            <MudChip T="string"
+                                                     Size="Size.Small"
+                                                     Style="@($"color: {tag.ColorHex}; background-color: {tag.BgColorHex}; font-weight: bold; border-radius: 4px;")">
+                                                @tag.Name
+                                            </MudChip>
+                                        </MudSelectItem>
+                                    }
+                                </MudSelect>
+                            </MudItem>
 
-                        <MudItem xs="12">
-                            <MudSelect T="TagResponse"
-                                       Label="Oznake (Tagi)"
-                                       MultiSelection="true"
-                                       @bind-SelectedValues="_selectedTags"
-                                       MultiSelectionTextFunc="GetMultiSelectionText"
-                                       Variant="Variant.Outlined"
-                                       AdornmentIcon="@Icons.Material.Filled.Label"
-                                       AnchorOrigin="Origin.BottomCenter">
-
-                                @foreach (var tag in _tagList)
-                                {
-                                    <MudSelectItem T="TagResponse" Value="@tag">
+                            @if (SelectedTags != null && SelectedTags.Any())
+                            {
+                                <MudItem xs="12" Class="d-flex flex-wrap gap-2 mt-n1">
+                                    @foreach (var tag in SelectedTags)
+                                    {
                                         <MudChip T="string"
+                                                 OnClose="() => RemoveTag(tag)"
                                                  Size="Size.Small"
-                                                 Style="@($"color: {tag.ColorHex}; background-color: {tag.BgColorHex}; font-weight: bold;")">
+                                                 Variant="Variant.Filled"
+                                                 Style="@($"color: {tag.ColorHex}; background-color: {tag.BgColorHex}; font-weight: bold; border-radius: 4px;")">
                                             @tag.Name
                                         </MudChip>
-                                    </MudSelectItem>
-                                }
-                            </MudSelect>
-                        </MudItem>
+                                    }
+                                </MudItem>
+                            }
+                        </MudGrid>
+                    </MudForm>
 
-                        @if (_selectedTags != null && _selectedTags.Any())
+                    @if (!_response.IsSuccess)
+                    {
+                        <div class="mt-4 animate-fade-in">
+                            <ApiErrorAlert Response="@_response" />
+                        </div>
+                    }
+                </MudCardContent>
+
+                <MudCardActions Class="pa-6 border-top bg-light-grey actions-layout">
+                    <MudButton Variant="Variant.Text"
+                               OnClick="Cancel"
+                               Disabled="@_isSubmitting"
+                               Class="px-6 rounded-pill btn-mobile-order-2">
+                        Prekliči
+                    </MudButton>
+
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Primary"
+                               OnClick="HandleValidSubmit"
+                               Disabled="@_isSubmitting"
+                               Class="px-6 rounded-pill mud-elevation-2 btn-mobile-order-1">
+                        @if (_isSubmitting)
                         {
-                            <MudItem xs="12" Class="d-flex flex-wrap gap-2 mt-n2">
-                                @foreach (var tag in _selectedTags)
-                                {
-                                    <MudChip T="string"
-                                             OnClose="() => RemoveTag(tag)"
-                                             Style="@($"color: {tag.ColorHex}; background-color: {tag.BgColorHex}; font-weight: bold;")">
-                                        @tag.Name
-                                    </MudChip>
-                                }
-                            </MudItem>
+                            <MudProgressCircular Class="ms-n1 me-2" Size="Size.Small" Indeterminate="true" />
+                            <span>Shranjevanje...</span>
                         }
+                        else
+                        {
+                            <span>Shrani opravilo</span>
+                        }
+                    </MudButton>
+                </MudCardActions>
 
-                    </MudGrid>
-                </MudForm>
+            </MudCard>
+        </MudItem>
+    </MudGrid>
+</MudContainer>
 
-                @if (!_response.IsSuccess)
-                {
-                    <div class="mt-4">
-                        <ApiErrorAlert Response="@_response" />
-                    </div>
-                }
-            </MudCardContent>
+<style>
+    .font-weight-bold { font-weight: 600; }
+    .font-weight-semibold { font-weight: 500; }
+    .text-muted { color: var(--mud-palette-text-secondary); }
+    
+    .border-bottom { border-bottom: 1px solid var(--mud-palette-background-grey); }
+    .border-top { border-top: 1px solid var(--mud-palette-background-grey); }
+    .border-light { border: 1px solid var(--mud-palette-background-grey); }
+    
+    .bg-primary-light { background-color: rgba(var(--mud-palette-primary-rgb), 0.08); }
+    .bg-light-grey { background-color: var(--mud-palette-background-grey); }
+    
+    .border-dashed { border: 1px dashed var(--mud-palette-divider); }
+    .switch-container { background-color: rgba(var(--mud-palette-success-rgb), 0.03); }
 
-            <MudCardActions Class="d-flex justify-end gap-2 pa-6 border-top">
-                <MudButton Variant="Variant.Text"
-                           OnClick="Cancel"
-                           Disabled="@_isSubmitting"
-                           Class="px-6 rounded-pill">
-                    Prekliči
-                </MudButton>
-
-                <MudButton Variant="Variant.Filled"
-                           Color="Color.Primary"
-                           OnClick="HandleValidSubmit"
-                           Disabled="@_isSubmitting"
-                           Class="px-6 rounded-pill">
-                    @if (_isSubmitting)
-                    {
-                        <MudProgressCircular Class="ms-n1 me-2" Size="Size.Small" Indeterminate="true" />
-                        <span>Shranjevanje...</span>
-                    }
-                    else
-                    {
-                        <span>Shrani Opravilo</span>
-                    }
-                </MudButton>
-            </MudCardActions>
-        </MudCard>
-    </MudItem>
-</MudGrid>
-
-@code {
-    [Parameter]
-    public Guid? ParentToDoId { get; set; }
-
-    private MudForm _form = null!;
-    private ToDoAddRequest _model = new();
-    private ToDoAddRequestValidator _validator = new();
-
-    private bool _isSubmitting;
-    private readonly CancellationTokenSource _cts = new();
-    private ApiResponse<ToDoResponse> _response = ApiResponse<ToDoResponse>.Empty();
-    private List<TagResponse> _tagList = [];
-    private IReadOnlyCollection<TagResponse> _selectedTags { get; set; } = new List<TagResponse>();
-
-    protected override async Task OnInitializedAsync()
-    {
-        _model.ParentToDoId = ParentToDoId;
-        _tagList = await _tagService.GetActiveTags(_cts.Token);
+    /* 🟢 ODZIVNI PRELOM (RESPONSIVE) ZA GUMBE */
+    .actions-layout {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
     }
 
-    private string GetMultiSelectionText(IReadOnlyList<string> selectedValues)
-    {
-        return selectedValues.Count == 0
-            ? "Ni izbranih oznak"
-            : $"Izbrano ({selectedValues.Count})";
-    }
-
-    private void RemoveTag(TagResponse tag)
-    {
-        var list = _selectedTags.ToList();
-        list.Remove(tag);
-        _selectedTags = list;
-    }
-
-    private async Task HandleValidSubmit()
-    {
-        _response = ApiResponse<ToDoResponse>.Empty();
-
-        _model.TagIds = _selectedTags.Select(x => x.Id).ToList();
-
-        // 1. Ročno sprožimo MudBlazor validacijo forme pred pošiljanjem
-        await _form.ValidateAsync();
-
-        if (!_form.IsValid)
-        {
-            Snackbar.Add("Obrazec ni veljaven. Preverite vnešene podatke.", MudBlazor.Severity.Error);
-            return;
+    @@media (max-width: 600px) {
+        .actions-layout {
+            flex-direction: column; /* Gumba se postavita drug pod drugega na telefonu */
+            width: 100%;
         }
-
-        _isSubmitting = true;
-
-        var result = await _toDoService.CreateAsync(_model, _cts.Token);
-        _response = result;
-
-        if (result.IsSuccess)
-        {
-            NavigationManager.NavigateTo("/todo");
-        }
-
-        _isSubmitting = false;
-    }
-
-    private void Cancel() => NavigationManager.NavigateTo("/todo");
         
-    public void Dispose()
-    {
-        _cts.Cancel();
-        _cts.Dispose();
+        .actions-layout .MudButton {
+            width: 100% !important; /* Gumba zavzameta celotno širino */
+            justify-content: center;
+        }
+
+        /* Pametni vrstni red na telefonu: Primarna akcija gre na vrh, Prekliči pa spodaj */
+        .btn-mobile-order-1 { order: 1; }
+        .btn-mobile-order-2 { order: 2; }
     }
-}
+</style>

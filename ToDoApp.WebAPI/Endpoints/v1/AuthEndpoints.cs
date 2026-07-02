@@ -31,7 +31,7 @@ public static class AuthEndpoints
         authGroup.MapPost("/refresh", RefreshToken)
             .AddEndpointFilter<ValidationFilter<TokenRequest>>();
 
-        authGroup.MapGet("/logout", Logout)
+        authGroup.MapPost("/logout", Logout)
             .RequireAuthorization();
 
         authGroup.MapPost("/reset-password", ResetPassword)
@@ -45,35 +45,76 @@ public static class AuthEndpoints
 
     [AllowAnonymous]
     public static async Task<IResult> Register(RegisterRequest? registerRequest,
-                                               IIdentityService identityService)
+                                               IIdentityService identityService,
+                                               HttpContext httpContext)
     {
         ServiceResult<AuthResponse> authResult = await identityService.RegisterAsync(registerRequest!);
+
+        if (authResult.IsSuccess && authResult.Value is not null)
+        {
+            AddRefreshTokenToCookie(httpContext, authResult.Value.RefreshToken);
+        }
 
         return authResult.ToHttpResult();
     }
 
     [AllowAnonymous]
     public static async Task<IResult> Login(LoginRequest? loginRequest,
-                                            IIdentityService identityService)
+                                            IIdentityService identityService,
+                                            HttpContext httpContext)
     {
         ServiceResult<AuthResponse> authResult = await identityService.LoginAsync(loginRequest!);
+
+        if (authResult.IsSuccess && authResult.Value is not null)
+        {
+            AddRefreshTokenToCookie(httpContext, authResult.Value.RefreshToken);
+        }
 
         return authResult.ToHttpResult();
     }
 
-    public static async Task<IResult> Logout(IIdentityService identityService)
+    public static async Task<IResult> Logout(TokenRequest token,
+                                             IIdentityService identityService,
+                                             HttpContext httpContext)
     {
-        await identityService.Logout();
+        if (httpContext.Request.Cookies.TryGetValue("refreshToken", out var refreshToken))
+        {
+            token.RefreshToken = refreshToken;
+
+            await identityService.Logout(token);
+        }
+
+        httpContext.Response.Cookies.Delete("refreshToken", new CookieOptions
+        {
+            Path = "/api/v1/auth"
+        });
 
         return Results.NoContent();
     }
 
     public static async Task<IResult> RefreshToken(TokenRequest? tokenRequest,
-                                                   IIdentityService identityService)
+                                                   IIdentityService identityService,
+                                                   HttpContext httpContext)
     {
-        ServiceResult<AuthResponse> authResult = await identityService.RefreshTokenAsync(tokenRequest!);
+        if (!httpContext.Request.Cookies.TryGetValue("refreshToken", out var refreshToken))
+            return Results.Unauthorized();
 
-        return authResult.ToHttpResult();
+        tokenRequest!.RefreshToken = refreshToken;
+
+        ServiceResult<AuthResponse> result = await identityService.RefreshTokenAsync(tokenRequest);
+
+        if (!result.IsSuccess || result.Value is null)
+        {
+            return Results.Problem(title: result.ErrorTitle,
+                                  detail: result.ErrorDetail,
+                                  statusCode: (int)result.StatusCode);
+        }
+
+        AddRefreshTokenToCookie(httpContext, result.Value.RefreshToken);
+
+        result.Value.RefreshToken = string.Empty;
+
+        return result.ToHttpResult();
     }
 
     public static async Task<IResult> ForgotPassword(ForgotPassRequest? forgotPassRequest,
@@ -90,5 +131,17 @@ public static class AuthEndpoints
         ServiceResult<string> authResult = await identityService.ResetPasswordAsync(resetPassRequest!);
 
         return authResult.ToHttpResult();
+    }
+
+    private static void AddRefreshTokenToCookie(HttpContext httpContext, string refreshToken)
+    {
+        httpContext.Response.Cookies.Append("refreshToken", refreshToken, new CookieOptions
+        {
+            HttpOnly = true,
+            Secure = true,
+            SameSite = SameSiteMode.Strict,
+            Path = "/api/v1/auth",
+            Expires = DateTimeOffset.UtcNow.AddDays(30)
+        });
     }
 }

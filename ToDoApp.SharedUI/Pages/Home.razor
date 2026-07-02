@@ -1,5 +1,5 @@
 ﻿@page "/"
-@using System.Globalization
+
 @inject LanguageState LangState
 
 <MudContainer MaxWidth="MaxWidth.Large" Class="pt-16 my-auto">
@@ -17,7 +17,7 @@
             <MudButton Variant="Variant.Filled"
                        Color="Color.Primary"
                        Size="Size.Large"
-                       Href="/todo"
+                       Href="/dashboard"
                        Class="rounded-pill px-6 py-3 mb-8 shadow-md">
                 @LangState.T("TryItButton")
             </MudButton>

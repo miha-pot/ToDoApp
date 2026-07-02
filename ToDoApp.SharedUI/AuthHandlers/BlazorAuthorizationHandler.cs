@@ -5,72 +5,97 @@ using System.Net.Http.Json;
 using ToDoApp.Shared.AuthDTO;
 using ToDoApp.Shared.AuthDTO.Token;
 using ToDoApp.SharedUI.ServiceContracts;
+using Microsoft.AspNetCore.Components.WebAssembly.Http;
 
-namespace ToDoApp.SharedUI.AuthHandlers
+namespace ToDoApp.SharedUI.AuthHandlers;
+
+public class BlazorAuthorizationHandler : DelegatingHandler
 {
-    public class BlazorAuthorizationHandler : DelegatingHandler
+    private readonly IDataStorage _dataStorage;
+    private readonly SemaphoreSlim _refreshLock = new(1, 1);
+    private readonly NavigationManager _navigationManager;
+    private readonly IHttpClientFactory _httpClientFactory;
+    private bool _isLoggingOut = false;
+
+    public BlazorAuthorizationHandler(IDataStorage dataStorage,
+                                       NavigationManager navigationManager,
+                                       IHttpClientFactory httpClientFactory)
     {
-        private readonly IDataStorage _dataStorage;
+        _dataStorage = dataStorage;
+        _navigationManager = navigationManager;
+        _httpClientFactory = httpClientFactory;
+    }
 
-        private readonly NavigationManager _navigationManager;
+    protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request,
+                                                                 CancellationToken cancellationToken)
+    {
+        var token = await _dataStorage.GetItemAsync<string>("authToken");
 
-        public BlazorAuthorizationHandler(IDataStorage dataStorage, NavigationManager navigationManager)
+        if (!string.IsNullOrWhiteSpace(token))
         {
-            _dataStorage = dataStorage;
-            _navigationManager = navigationManager;
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
         }
 
-        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        request.SetBrowserRequestCredentials(BrowserRequestCredentials.Include);
+
+        var response = await base.SendAsync(request, cancellationToken);
+
+        if (response.StatusCode != HttpStatusCode.Unauthorized) return response;
+
+        await _refreshLock.WaitAsync(cancellationToken);
+        try
         {
-            var token = await _dataStorage.GetItemAsync<string>("authToken");
+            if (_isLoggingOut) return response;
+
+            var currentToken = await _dataStorage.GetItemAsync<string>("authToken");
+            if (!string.IsNullOrWhiteSpace(currentToken) && currentToken != token)
+            {
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", currentToken);
+                response.Dispose();
+
+                return await base.SendAsync(request, cancellationToken);
+            }
 
             if (!string.IsNullOrWhiteSpace(token))
             {
-                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
-            }
-
-            var response = await base.SendAsync(request, cancellationToken);
-
-            if (response.StatusCode == HttpStatusCode.Unauthorized)
-            {
-                var refreshToken = await _dataStorage.GetItemAsync<string>("refreshToken");
-
-                if (!string.IsNullOrWhiteSpace(token) && !string.IsNullOrWhiteSpace(refreshToken))
+                using HttpClient refreshClient = _httpClientFactory.CreateClient("RefreshClient");
+                var tokenRequest = new TokenRequest() { Token = token };
+                var refreshRequest = new HttpRequestMessage(HttpMethod.Post, "auth/refresh")
                 {
-                    using var refreshClient = new HttpClient { BaseAddress = response.RequestMessage?.RequestUri };
+                    Content = JsonContent.Create(tokenRequest)
+                };
 
-                    TokenRequest tokenRequest = new()
+                refreshRequest.SetBrowserRequestCredentials(BrowserRequestCredentials.Include);
+
+                var refreshResponse = await refreshClient.SendAsync(refreshRequest, cancellationToken);
+
+                if (refreshResponse.IsSuccessStatusCode)
+                {
+                    AuthResponse? apiResult = await refreshResponse.Content.ReadFromJsonAsync<AuthResponse>(cancellationToken);
+                    if (apiResult is not null)
                     {
-                        Token = token,
-                        RefreshToken = refreshToken
-                    };
+                        await _dataStorage.SetItemAsync("authToken", apiResult.Token);
 
-                    var refreshResponse = await refreshClient.PostAsJsonAsync("auth/refresh", tokenRequest, cancellationToken);
+                        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiResult.Token);
+                        response.Dispose();
 
-                    if (refreshResponse.IsSuccessStatusCode)
-                    {
-                        var apiResult = await refreshResponse.Content.ReadFromJsonAsync<AuthResponse>(cancellationToken);
-
-                        if (apiResult is not null)
-                        {
-                            await _dataStorage.SetItemAsync("authToken", apiResult.Token);
-                            await _dataStorage.SetItemAsync("refreshToken", apiResult.RefreshToken);
-
-                            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiResult.Token);
-
-                            response.Dispose();
-                            return await base.SendAsync(request, cancellationToken);
-                        }
+                        return await base.SendAsync(request, cancellationToken);
                     }
                 }
-
-                await _dataStorage.RemoveItemAsync("authToken");
-                await _dataStorage.RemoveItemAsync("refreshToken");
-
-                _navigationManager.NavigateTo("/login");
             }
+
+            _isLoggingOut = true;
+            await _dataStorage.RemoveItemAsync("authToken");
+
+            _navigationManager.NavigateTo("/login");
 
             return response;
         }
+        finally
+        {
+            _refreshLock.Release();
+        }
     }
+
+    public void ResetLogoutState() => _isLoggingOut = false;
 }

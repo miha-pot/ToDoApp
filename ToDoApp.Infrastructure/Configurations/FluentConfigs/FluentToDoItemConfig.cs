@@ -2,7 +2,7 @@
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using ToDoApp.Domain.Entities;
 
-namespace ToDoApp.Infrastructure.FluentConfigs;
+namespace ToDoApp.Infrastructure.Configurations.FluentConfigs;
 
 public class FluentToDoItemConfig : IEntityTypeConfiguration<TodoItem>
 {

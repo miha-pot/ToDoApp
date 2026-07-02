@@ -1,0 +1,203 @@
+﻿@page "/dashboard"
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@inject IToDoService ToDoService
+@inject ISnackbar Snackbar
+@using MudBlazor
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="pt-16 my-4">
+    <MudText Typo="Typo.h4" GutterBottom="true" Class="mb-4">Nadzorna plošča</MudText>
+    <MudText Typo="Typo.body1" Class="text-muted mb-6">Dobrodošli nazaj! Tukaj je kratek pregled vaših delovnih procesov in nalog.</MudText>
+
+    @if (_isLoading)
+    {
+        <MudGrid>
+            <MudItem xs="12" Class="d-flex justify-center my-8">
+                <MudProgressCircular Color="Color.Primary" Size="Size.Large" Indeterminate="true" />
+            </MudItem>
+        </MudGrid>
+    }
+    else
+    {
+        <MudGrid Class="mb-6">
+            <MudItem xs="12" sm="4">
+                <MudPaper Class="pa-4 d-flex align-center rounded-lg" Elevation="2" Style="border-left: 6px solid var(--mud-palette-primary);">
+                    <MudIcon Icon="@Icons.Material.Filled.ListAlt" Color="Color.Primary" Size="Size.Large" Class="mr-4" />
+                    <div>
+                        <MudText Typo="Typo.subtitle2" Class="text-muted">Vse naloge</MudText>
+                        <MudText Typo="Typo.h4">@_totalCount</MudText>
+                    </div>
+                </MudPaper>
+            </MudItem>
+            <MudItem xs="12" sm="4">
+                <MudPaper Class="pa-4 d-flex align-center rounded-lg" Elevation="2" Style="border-left: 6px solid var(--mud-palette-error);">
+                    <MudIcon Icon="@Icons.Material.Filled.NewReleases" Color="Color.Error" Size="Size.Large" Class="mr-4" />
+                    <div>
+                        <MudText Typo="Typo.subtitle2" Class="text-muted">Nujno / Zamujeno</MudText>
+                        <MudText Typo="Typo.h4">@_urgentItems.Count</MudText>
+                    </div>
+                </MudPaper>
+            </MudItem>
+            <MudItem xs="12" sm="4">
+                <MudPaper Class="pa-4 d-flex align-center rounded-lg" Elevation="2" Style="border-left: 6px solid var(--mud-palette-success);">
+                    <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Large" Class="mr-4" />
+                    <div>
+                        <MudText Typo="Typo.subtitle2" Class="text-muted">Dokončano</MudText>
+                        <MudText Typo="Typo.h4">@_completedCount</MudText>
+                    </div>
+                </MudPaper>
+            </MudItem>
+        </MudGrid>
+
+        <MudGrid>
+            <MudItem xs="12" md="6">
+                <MudCard Elevation="2" Class="rounded-lg h-100">
+                    <MudCardHeader>
+                        <CardHeaderContent>
+                            <MudText Typo="Typo.h6" Color="Color.Error">
+                                <MudIcon Icon="@Icons.Material.Filled.Warning" Size="Size.Medium" Class="mr-2" />
+                                Kritične in nujne naloge
+                            </MudText>
+                        </CardHeaderContent>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        @if (!_urgentItems.Any())
+                        {
+                            <MudAlert Severity="MudBlazor.Severity.Success" Variant="Variant.Filled" Class="my-2 rounded-lg">
+                                Odlično! Trenutno nimate nobenih nujnih ali zamujenih nalog.
+                            </MudAlert>
+                        }
+                        else
+                        {
+                            <MudList T="ToDoResponse" Dense="true">
+                                @foreach (var item in _urgentItems)
+                                {
+                                    <MudListItem Icon="@Icons.Material.Filled.AssignmentLate" IconColor="Color.Error" Class="border-bottom py-3">
+                                        <div class="d-flex justify-space-between align-center w-100">
+                                            <div>
+                                                <MudText Typo="Typo.body1" Class="font-weight-bold">@item.Title</MudText>
+                                                <MudText Typo="Typo.caption" Class="text-muted">Rok: @item.DueDate?.ToString("dd. MM. yyyy")</MudText>
+                                            </div>
+                                            <MudChip T="string" Color="Color.Error" Size="Size.Small" Variant="Variant.Text">Nujno</MudChip>
+                                        </div>
+                                    </MudListItem>
+                                }
+                            </MudList>
+                        }
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+
+            <MudItem xs="12" md="6">
+                <MudCard Elevation="2" Class="rounded-lg h-100">
+                    <MudCardHeader>
+                        <CardHeaderContent>
+                            <MudText Typo="Typo.h6" Color="Color.Primary" Class="d-flex align-center">
+                                <MudIcon Icon="@Icons.Material.Filled.History" Size="Size.Medium" Class="mr-2" />
+                                Nedavne aktivnosti
+                            </MudText>
+                        </CardHeaderContent>                    
+                    </MudCardHeader>
+                    <MudCardContent>
+                        @if (!_recentItems.Any())
+                        {
+                            <MudText Typo="Typo.body2" Class="text-muted align-center my-4">Ni najdenih nalog.</MudText>
+                        }
+                        else
+                        {
+                            <MudList T="ToDoResponse" Dense="true">
+                                @foreach (var item in _recentItems)
+                                {
+                                    <MudListItem Icon="@Icons.Material.Filled.Assignment" IconColor="Color.Primary" Class="border-bottom py-3">
+                                        <div class="d-flex justify-space-between align-center w-100">
+                                            <div style="max-width: 70%;">
+                                                <MudText Typo="Typo.body1" Class="@(item.IsCompleted ? "text-decoration-line-through text-muted" : "")">
+                                                    @item.Title
+                                                </MudText>
+                                                <MudText Typo="Typo.caption" Class="text-truncate d-block text-muted">@item.Description</MudText>
+                                            </div>
+                                            <div>
+                                                @if (item.IsCompleted)
+                                                {
+                                                    <MudChip T="string" Color="Color.Success" Size="Size.Small">Zaključeno</MudChip>
+                                                }
+                                                else
+                                                {
+                                                    <MudChip T="string" Color="Color.Info" Size="Size.Small" Variant="Variant.Outlined">V teku</MudChip>
+                                                }
+                                            </div>
+                                        </div>
+                                    </MudListItem>
+                                }
+                            </MudList>
+                        }
+                    </MudCardContent>   
+                    <MudCardActions Class="justify-end pa-4">
+                        <MudButton Href="/todo" Variant="Variant.Text" EndIcon="@Icons.Material.Filled.ArrowForward" Color="Color.Primary">
+                            Prikaži vse naloge
+                        </MudButton>
+                    </MudCardActions>
+                </MudCard>
+            </MudItem>
+        </MudGrid>
+    }
+</MudContainer>
+
+<style>
+    .border-bottom {
+        border-bottom: 1px solid var(--mud-palette-background-grey);
+    }
+
+    .font-weight-bold {
+        font-weight: 600;
+    }
+</style>
+
+@code {
+    private bool _isLoading = true;
+    private int _totalCount = 0;
+    private int _completedCount = 0;
+    private List<ToDoResponse> _urgentItems = new();
+    private List<ToDoResponse> _recentItems = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var queryAll = new QueryRequest { Page = 1, PageSize = 100 };
+            var response = await ToDoService.GetItemsWithQuery(queryAll, CancellationToken.None);
+
+            if (response.IsSuccess && response.Value != null)
+            {
+                var allItems = response.Value.Items.ToList();
+                _totalCount = response.Value.TotalCount;
+                _completedCount = allItems.Count(x => x.IsCompleted);
+
+                _urgentItems = allItems
+                    .Where(x => !x.IsCompleted && x.DueDate.HasValue && (x.DueDate.Value.Date <= DateTime.UtcNow.Date.AddDays(2)))
+                    .OrderBy(x => x.DueDate)
+                    .Take(5)
+                    .ToList();
+
+                _recentItems = allItems
+                    .Take(5)
+                    .ToList();
+            }
+            else
+            {
+                if (response.StatusCode != 401)
+                {
+                    Snackbar.Add("Napaka pri nalaganju analitike nalog.", MudBlazor.Severity.Error);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Dashboard Error: {ex.Message}");
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+}

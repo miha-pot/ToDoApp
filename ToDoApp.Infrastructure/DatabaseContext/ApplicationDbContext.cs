@@ -5,7 +5,8 @@ using System.Security.Claims;
 using ToDoApp.Domain.Entities;
 using ToDoApp.Domain.EntityContract;
 using ToDoApp.Domain.Identity;
-using ToDoApp.Infrastructure.FluentConfigs;
+using ToDoApp.Infrastructure.Configurations;
+using ToDoApp.Infrastructure.Configurations.FluentConfigs;
 
 namespace ToDoApp.Infrastructure.DatabaseContext;
 
@@ -30,20 +31,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
         modelBuilder.ApplyConfiguration(new FluentTagConfig());
         modelBuilder.ApplyConfiguration(new FluentToDoItemConfig());
 
-        modelBuilder.Entity<TodoItemTag>(x =>
-        {
-            x.HasKey(tt => new { tt.TodoItemId, tt.TagId });
-
-            x.HasOne(tt => tt.TodoItem)
-              .WithMany(todo => todo.TodoItemTags)
-              .HasForeignKey(tt => tt.TodoItemId)
-              .OnDelete(DeleteBehavior.Cascade);
-
-            x.HasOne(tt => tt.Tag)
-                  .WithMany(tag => tag.TodoItemTags)
-                  .HasForeignKey(tt => tt.TagId)
-                  .OnDelete(DeleteBehavior.Cascade);
-        });
+        modelBuilder.ApplyConfiguration(new TodoItemTagConfiguration());
     }
 
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)

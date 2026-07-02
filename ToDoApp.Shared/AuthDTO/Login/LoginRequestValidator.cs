@@ -11,6 +11,6 @@ public class LoginRequestValidator : AbstractValidator<LoginRequest>
             .EmailAddress().WithMessage("A valid email is required!");
 
         RuleFor(x => x.Password)
-            .NotEmpty().WithMessage("");
+            .NotEmpty().WithMessage("Password is required!");
     }
 }
