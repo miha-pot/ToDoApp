@@ -15,6 +15,12 @@ public partial class Edit : IDisposable
     [Parameter]
     public Guid Id { get; set; }
 
+    [Parameter]
+    public string? PreviousLocation { get; set; }
+
+    [Parameter]
+    public Guid? ParentId { get; set; }
+
     [Inject]
     public required IToDoService ToDoService { get; set; }
 
@@ -48,7 +54,8 @@ public partial class Edit : IDisposable
         if (!response.IsSuccess || response.Value is null)
         {
             Snackbar.Add($"{response.ErrorTitle}: {response.ErrorDetail}", MudBlazor.Severity.Error);
-            NavigationManager.NavigateTo("/todo");
+
+            NavigationManager.NavigateTo(SetUrlToPreviousLocation());
 
             return;
         }
@@ -88,7 +95,7 @@ public partial class Edit : IDisposable
 
         if (result.IsSuccess)
         {
-            NavigationManager.NavigateTo("/todo");
+            NavigationManager.NavigateTo(SetUrlToPreviousLocation());
         }
 
         _isSubmitting = false;
@@ -101,8 +108,33 @@ public partial class Edit : IDisposable
             : $"Izbrano ({selectedValues.Count})";
     }
 
-    private void Cancel() => NavigationManager.NavigateTo("/todo");
+    private void Cancel() => NavigationManager.NavigateTo(SetUrlToPreviousLocation());
 
+
+    private string SetUrlToPreviousLocation()
+    {
+        // 1. Če vemo, da imamo ParentId, pomeni, da smo urejali sub-task.
+        // Vrniti se moramo na details glavnega taska.
+        if (ParentId.HasValue)
+        {
+            return $"/todo/details/{ParentId.Value}";
+        }
+
+        // 2. Če imamo PreviousLocation eksplicitno podan (npr. "details")
+        if (!string.IsNullOrEmpty(PreviousLocation))
+        {
+            if (PreviousLocation.Equals(nameof(Dashboard)))
+            {
+                return $"/todo/{PreviousLocation.ToLower()}";
+            }
+
+            return $"/todo/{PreviousLocation.ToLower()}/{Id}";
+        }
+
+        // 3. "Fallback" (varnostna mreža): Če gre karkoli narobe, 
+        // ali pa če smo prišli iz seznama, vrni na osnovni index.
+        return "/todo";
+    }
 
     public void Dispose()
     {

@@ -13,4 +13,6 @@ public interface IToDoService
     Task<ApiResponse<PagedResult<ToDoResponse>>> GetItemsWithQuery(QueryRequest queryRequest, CancellationToken token);
     Task<ApiResponse<ToDoResponse>> UpdateAsync(ToDoUpdateRequest updateRequest, CancellationToken token);
     Task<ApiResponse<bool>> ChangeCompletionStatus(Guid id, CancellationToken token);
+    Task<ApiResponse<List<ToDoResponse>>> GetSubTasks(Guid parentId, CancellationToken token);
+
 }

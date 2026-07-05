@@ -13,6 +13,5 @@ public class TodoItem : BaseEntity, IUserOwnedEntity
     public Guid? ParentTodoId { get; set; }
     public TodoItem? ParentTodo { get; set; }
 
-    public ICollection<TodoItem> SubTasks { get; set; } = [];
     public ICollection<TodoItemTag> TodoItemTags { get; set; } = [];
 }

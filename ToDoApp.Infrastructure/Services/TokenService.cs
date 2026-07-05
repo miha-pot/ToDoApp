@@ -33,9 +33,9 @@ public class TokenService : ITokenService
         return authResponse;
     }
 
-    public async Task<ServiceResult<AuthResponse>> RefreshSessionAsync(TokenRequest tokenDTO)
+    public async Task<ServiceResult<AuthResponse>> RefreshSessionAsync(TokenRequest tokenRequest)
     {
-        ClaimsPrincipal? principal = _jwtService.GetPrincipalFromJwtToken(tokenDTO.Token);
+        ClaimsPrincipal? principal = _jwtService.GetPrincipalFromJwtToken(tokenRequest.Token);
 
         if (principal == null)
         {
@@ -53,7 +53,7 @@ public class TokenService : ITokenService
 
         var user = await _userManager.FindByEmailAsync(email);
 
-        if (user == null || IsTokenNotValid(user, tokenDTO.RefreshToken))
+        if (user == null || IsTokenNotValid(user, tokenRequest.RefreshToken!))
         {
             return ServiceResult<AuthResponse>.Failure("Invalid Session",
                                                        "Token not valid!",

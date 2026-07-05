@@ -1,14 +1,15 @@
 ﻿using FluentValidation;
 using Microsoft.AspNetCore.Components.Authorization;
 using MudBlazor.Services;
+using ToDoApp.Maui.AuthHandlers;
 using ToDoApp.Maui.Services;
+using ToDoApp.MAUI.AuthHandlers;
 using ToDoApp.Shared.AuthDTO.Login;
 using ToDoApp.Shared.AuthDTO.Register;
 using ToDoApp.Shared.TagDTO.Commands;
 using ToDoApp.Shared.TagDTO.Validators;
 using ToDoApp.Shared.ToDoDTO.Commands;
 using ToDoApp.Shared.ToDoDTO.Validators;
-using ToDoApp.SharedUI.AuthHandlers;
 using ToDoApp.SharedUI.Providers;
 using ToDoApp.SharedUI.ServiceContracts;
 using ToDoApp.SharedUI.Services;
@@ -30,20 +31,24 @@ public static class DependencyInjection
     public static IServiceCollection AddInfrastructureServices(this IServiceCollection services, MauiAppBuilder builder)
     {
         services.AddSingleton<LanguageState>();
-        services.AddSingleton<IDataStorage, MauiStorageService>();
+        services.AddSingleton<IDataStorage, MobileDataStorage>();
         services.AddSingleton(TimeProvider.System);
         services.AddMudServices();
 
         string apiUrl = string.Empty;
-
         if (string.IsNullOrEmpty(apiUrl))
-            throw new NotImplementedException("Set valid backend url!");
+            throw new NotImplementedException("Set correct API backend url!");
 
         services.AddHttpClient<ApiService>(options =>
         {
             options.BaseAddress = new Uri(apiUrl);
             options.Timeout = TimeSpan.FromSeconds(30);
-        }).AddHttpMessageHandler<BlazorAuthorizationHandler>();
+        }).AddHttpMessageHandler(sp => new MobileAuthorizationHandler(
+                sp.GetRequiredService<IHttpClientFactory>(),
+                sp.GetRequiredService<IDataStorage>(),
+                sp.GetRequiredService<MobileAuthEventService>(),
+                sp.GetRequiredService<MobileAuthState>()
+        ));
 
         services.AddHttpClient("RefreshClient", options =>
         {
@@ -70,7 +75,10 @@ public static class DependencyInjection
 
     public static IServiceCollection AddSecurityServices(this IServiceCollection services)
     {
-        services.AddTransient<BlazorAuthorizationHandler>();
+        services.AddSingleton<MobileAuthEventService>();
+        services.AddSingleton<MobileAuthState>();
+        services.AddSingleton<IAuthState>(sp => sp.GetRequiredService<MobileAuthState>());
+
         services.AddCascadingAuthenticationState();
         services.AddAuthorizationCore();
         services.AddScoped<AuthenticationStateProvider, CustomAuthenticationStateProvider>();

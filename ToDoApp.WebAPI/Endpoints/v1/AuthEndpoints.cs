@@ -50,11 +50,6 @@ public static class AuthEndpoints
     {
         ServiceResult<AuthResponse> authResult = await identityService.RegisterAsync(registerRequest!);
 
-        if (authResult.IsSuccess && authResult.Value is not null)
-        {
-            AddRefreshTokenToCookie(httpContext, authResult.Value.RefreshToken);
-        }
-
         return authResult.ToHttpResult();
     }
 
@@ -65,11 +60,6 @@ public static class AuthEndpoints
     {
         ServiceResult<AuthResponse> authResult = await identityService.LoginAsync(loginRequest!);
 
-        if (authResult.IsSuccess && authResult.Value is not null)
-        {
-            AddRefreshTokenToCookie(httpContext, authResult.Value.RefreshToken);
-        }
-
         return authResult.ToHttpResult();
     }
 
@@ -77,17 +67,8 @@ public static class AuthEndpoints
                                              IIdentityService identityService,
                                              HttpContext httpContext)
     {
-        if (httpContext.Request.Cookies.TryGetValue("refreshToken", out var refreshToken))
-        {
-            token.RefreshToken = refreshToken;
 
-            await identityService.Logout(token);
-        }
-
-        httpContext.Response.Cookies.Delete("refreshToken", new CookieOptions
-        {
-            Path = "/api/v1/auth"
-        });
+        await identityService.Logout(token);
 
         return Results.NoContent();
     }
@@ -96,23 +77,7 @@ public static class AuthEndpoints
                                                    IIdentityService identityService,
                                                    HttpContext httpContext)
     {
-        if (!httpContext.Request.Cookies.TryGetValue("refreshToken", out var refreshToken))
-            return Results.Unauthorized();
-
-        tokenRequest!.RefreshToken = refreshToken;
-
-        ServiceResult<AuthResponse> result = await identityService.RefreshTokenAsync(tokenRequest);
-
-        if (!result.IsSuccess || result.Value is null)
-        {
-            return Results.Problem(title: result.ErrorTitle,
-                                  detail: result.ErrorDetail,
-                                  statusCode: (int)result.StatusCode);
-        }
-
-        AddRefreshTokenToCookie(httpContext, result.Value.RefreshToken);
-
-        result.Value.RefreshToken = string.Empty;
+        var result = await identityService.RefreshTokenAsync(tokenRequest!);
 
         return result.ToHttpResult();
     }
@@ -131,17 +96,5 @@ public static class AuthEndpoints
         ServiceResult<string> authResult = await identityService.ResetPasswordAsync(resetPassRequest!);
 
         return authResult.ToHttpResult();
-    }
-
-    private static void AddRefreshTokenToCookie(HttpContext httpContext, string refreshToken)
-    {
-        httpContext.Response.Cookies.Append("refreshToken", refreshToken, new CookieOptions
-        {
-            HttpOnly = true,
-            Secure = true,
-            SameSite = SameSiteMode.Strict,
-            Path = "/api/v1/auth",
-            Expires = DateTimeOffset.UtcNow.AddDays(30)
-        });
     }
 }

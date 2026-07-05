@@ -9,4 +9,5 @@ public interface IToDoService : ICommonService<ToDoAddRequest, ToDoResponse, ToD
 {
     Task<PagedResult<ToDoResponse>> GetItemsWithQuery(QueryRequest queryRequest, CancellationToken cancellationToken);
     Task<ServiceResult<bool>> ChangeCompletionStatus(Guid? id, CancellationToken cancellationToken);
+    Task<List<ToDoResponse>> GetSubTasks(Guid parentId, CancellationToken cancellationToken);
 }

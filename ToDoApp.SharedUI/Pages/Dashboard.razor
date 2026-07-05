@@ -72,7 +72,7 @@
                             <MudList T="ToDoResponse" Dense="true">
                                 @foreach (var item in _urgentItems)
                                 {
-                                    <MudListItem Icon="@Icons.Material.Filled.AssignmentLate" IconColor="Color.Error" Class="border-bottom py-3">
+                                    <MudListItem Icon="@Icons.Material.Filled.AssignmentLate" IconColor="Color.Error" Class="border-bottom py-3" OnClick="() => NavigateToDetails(item.Id)">
                                         <div class="d-flex justify-space-between align-center w-100">
                                             <div>
                                                 <MudText Typo="Typo.body1" Class="font-weight-bold">@item.Title</MudText>
@@ -96,7 +96,7 @@
                                 <MudIcon Icon="@Icons.Material.Filled.History" Size="Size.Medium" Class="mr-2" />
                                 Nedavne aktivnosti
                             </MudText>
-                        </CardHeaderContent>                    
+                        </CardHeaderContent>
                     </MudCardHeader>
                     <MudCardContent>
                         @if (!_recentItems.Any())
@@ -108,7 +108,7 @@
                             <MudList T="ToDoResponse" Dense="true">
                                 @foreach (var item in _recentItems)
                                 {
-                                    <MudListItem Icon="@Icons.Material.Filled.Assignment" IconColor="Color.Primary" Class="border-bottom py-3">
+                                    <MudListItem Icon="@Icons.Material.Filled.Assignment" IconColor="Color.Primary" Class="border-bottom py-3" OnClick="() => NavigateToDetails(item.Id)">
                                         <div class="d-flex justify-space-between align-center w-100">
                                             <div style="max-width: 70%;">
                                                 <MudText Typo="Typo.body1" Class="@(item.IsCompleted ? "text-decoration-line-through text-muted" : "")">
@@ -131,7 +131,7 @@
                                 }
                             </MudList>
                         }
-                    </MudCardContent>   
+                    </MudCardContent>
                     <MudCardActions Class="justify-end pa-4">
                         <MudButton Href="/todo" Variant="Variant.Text" EndIcon="@Icons.Material.Filled.ArrowForward" Color="Color.Primary">
                             Prikaži vse naloge
@@ -200,4 +200,6 @@
             _isLoading = false;
         }
     }
+
+    private void NavigateToDetails(Guid id) => NavigationManager.NavigateTo($"/todo/Details/{id}/Dashboard");
 }

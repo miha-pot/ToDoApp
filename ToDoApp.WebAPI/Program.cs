@@ -1,9 +1,10 @@
 using Asp.Versioning;
 using ToDoApp.WebAPI.Endpoints.v1;
+using ToDoApp.WebAPI.Extensions;
 using ToDoApp.WebAPI.Extensions.Main;
 
 var builder = WebApplication.CreateBuilder(args);
-
+Console.OutputEncoding = System.Text.Encoding.UTF8;
 // ==========================================
 // REGISTER SERVICES (Using Extension Methods)
 // ==========================================
@@ -23,7 +24,7 @@ var app = builder.Build();
 app.UseStatusCodePages();
 app.UseExceptionHandler();
 
-// Configure the HTTP request pipeline.
+// Configure the HTTP request pipeline. 
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
@@ -33,6 +34,7 @@ app.UseHsts();
 app.UseHttpsRedirection();
 app.UseRouting();
 app.UseCors();
+app.UseRequestLogging();
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseRateLimiter();

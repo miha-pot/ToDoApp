@@ -31,6 +31,8 @@ public class ToDoService : IToDoService
         => await _apiService.DeleteAsync($"{_endpoint}/delete/{id}", token);
 
     public async Task<ApiResponse<bool>> ChangeCompletionStatus(Guid id, CancellationToken token)
-            => await _apiService.PatchAsync<bool>($"{_endpoint}/{id}/complete", token);
+        => await _apiService.PatchAsync<bool>($"{_endpoint}/{id}/complete", token);
 
+    public async Task<ApiResponse<List<ToDoResponse>>> GetSubTasks(Guid parentId, CancellationToken token)
+        => await _apiService.GetAsync<List<ToDoResponse>>($"{_endpoint}/{parentId}/subtasks", token);
 }

@@ -1,0 +1,209 @@
+﻿@page "/todo/details/{id:guid}"
+@page "/todo/details/{id:guid}/{previousLocation}"
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="pt-4 pt-md-16 my-4">
+    <MudButton StartIcon="@Icons.Material.Filled.ArrowBack"
+               OnClick="GoBack"
+               Variant="Variant.Text"
+               Color="Color.Default"
+               Class="mb-4">
+        Nazaj na seznam
+    </MudButton>
+
+    @if (_isLoading)
+    {
+        <div class="text-center pa-12">
+            <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Large" Class="mb-3" />
+            <MudText Typo="Typo.body1" Class="text-muted">Nalagam podrobnosti opravila...</MudText>
+        </div>
+    }
+    else if (_mainTodo == null)
+    {
+        <MudAlert Severity="MudBlazor.Severity.Error" Variant="Variant.Filled" Class="rounded-lg">
+            Opravila ni mogoče najti ali pa nimate pravic za ogled.
+        </MudAlert>
+    }
+    else
+    {
+        <MudGrid>
+            <MudItem xs="12" md="4">
+                <MudCard Elevation="3" Class="rounded-lg h-100 border-light">
+                    <MudCardHeader Class="border-bottom py-4 bg-light-grey">
+                        <CardHeaderContent>
+                            <div class="d-flex align-center gap-2">
+                                <MudIcon Icon="@Icons.Material.Filled.Assignment" Color="Color.Primary" />
+                                <MudText Typo="Typo.h6" Class="font-weight-bold">Glavno opravilo</MudText>
+                            </div>
+                        </CardHeaderContent>
+                        <CardHeaderActions>
+                            <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                           Color="Color.Info"
+                                           Size="Size.Small"
+                                           OnClick="NavigateToEdit" />
+                        </CardHeaderActions>
+                    </MudCardHeader>
+
+                    <MudCardContent Class="pa-6">
+                        <MudStack Spacing="3">
+                            <div>
+                                <MudText Typo="Typo.caption" Class="text-muted uppercase font-weight-bold">Naslov</MudText>
+                                <MudText Typo="Typo.body1" Class="font-weight-bold text-dark">@_mainTodo.Title</MudText>
+                            </div>
+
+                            <div>
+                                <MudText Typo="Typo.caption" Class="text-muted uppercase font-weight-bold">Opis</MudText>
+                                <MudText Typo="Typo.body2" Class="text-secondary text-wrap style-description">
+                                    @(string.IsNullOrWhiteSpace(_mainTodo.Description) ? "Brez opisa." : _mainTodo.Description)
+                                </MudText>
+                            </div>
+
+                            <MudDivider Class="my-2" />
+
+                            <div class="d-flex justify-space-between align-center">
+                                <MudText Typo="Typo.body2" Class="font-weight-semibold">Prioriteta:</MudText>
+                                <MudChip T="string" Color="@GetMudChipColor(_mainTodo.Level)" Variant="Variant.Filled" Size="Size.Small" Class="text-white font-weight-bold ma-0">
+                                    @_mainTodo.Level.GetDisplayName()
+                                </MudChip>
+                            </div>
+
+                            <div class="d-flex justify-space-between align-center">
+                                <MudText Typo="Typo.body2" Class="font-weight-semibold">Rok izvedbe:</MudText>
+                                <MudText Typo="Typo.body2" Class="font-weight-bold text-dark">
+                                    <MudIcon Icon="@Icons.Material.Filled.Event" Size="Size.Small" Class="text-muted me-1 mb-n1" />
+                                    @(_mainTodo.DueDate.HasValue ? _mainTodo.DueDate.Value.ToLocalTime().ToString("dd. MM. yyyy") : "/")
+                                </MudText>
+                            </div>
+
+                            <div class="d-flex justify-space-between align-center">
+                                <MudText Typo="Typo.body2" Class="font-weight-semibold">Glavni status:</MudText>
+                                @if (_mainTodo.IsCompleted)
+                                {
+                                    <MudChip T="string" Color="Color.Success" Size="Size.Small" Variant="Variant.Text" Class="font-weight-bold ma-0">Zaključeno</MudChip>
+                                }
+                                else
+                                {
+                                    <MudChip T="string" Color="Color.Warning" Size="Size.Small" Variant="Variant.Text" Class="font-weight-bold ma-0">V teku</MudChip>
+                                }
+                            </div>
+
+                            <MudDivider Class="my-2" />
+
+                            <div>
+                                <MudText Typo="Typo.caption" Class="text-muted uppercase font-weight-bold d-block mb-1">Oznake</MudText>
+                                <div class="d-flex flex-wrap gap-1">
+                                    @if (_mainTodo.Tags != null && _mainTodo.Tags.Any())
+                                    {
+                                        @foreach (var tag in _mainTodo.Tags)
+                                        {
+                                            <MudChip T="string" Size="Size.Small" Variant="Variant.Filled" Style="@($"color: {tag.ColorHex}; background-color: {tag.BgColorHex}; font-weight: bold; border-radius: 4px;")">
+                                                @tag.Name
+                                            </MudChip>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <MudText Typo="Typo.caption" Class="text-muted italic">Brez oznak</MudText>
+                                    }
+                                </div>
+                            </div>
+                        </MudStack>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+
+            <MudItem xs="12" md="8">
+                <MudStack Spacing="4">
+
+                    <MudPaper Class="pa-4 rounded-lg" Elevation="3">
+                        <div class="d-flex justify-space-between align-center mb-2">
+                            <MudText Typo="Typo.subtitle1" Class="font-weight-bold">Skupni napredek projekta / nalog</MudText>
+                            <MudText Typo="Typo.subtitle1" Class="font-weight-bold text-primary">@_subtaskProgress%</MudText>
+                        </div>
+                        <MudProgressLinear Color="Color.Primary" Value="@_subtaskProgress" Class="rounded-pill my-2" Size="Size.Medium" />
+                    </MudPaper>
+
+                    <MudCard Elevation="3" Class="rounded-lg border-light">
+                        <MudCardHeader Class="border-bottom py-4">
+                            <CardHeaderContent>
+                                <MudText Typo="Typo.h6" Class="font-weight-bold">Podopravila (@_subtasks.Count)</MudText>
+                            </CardHeaderContent>
+                        </MudCardHeader>
+
+                        <MudCardContent Class="pa-6">
+                            <div class="quick-add-container rounded-lg pa-3 mb-4 bg-light-grey">
+                                <MudGrid Spacing="2" Class="align-center">
+                                    <MudItem xs="12" sm="8" md="9">
+                                        <MudTextField @bind-Value="_newSubtaskTitle"
+                                                      Placeholder="Vpišite nov subtask (npr. Preveri varnostni ventil...)"
+                                                      Variant="Variant.Outlined"
+                                                      Margin="Margin.Dense"
+                                                      Clearable="true"
+                                                      Immediate="true"
+                                                      OnKeyDown="@HandleQuickAddKeyDown"
+                                                      Disabled="@_isAddingSubtask" />
+                                    </MudItem>
+                                    <MudItem xs="12" sm="4" md="3" Class="d-flex justify-end">
+                                        <MudButton Variant="Variant.Filled"
+                                                   Color="Color.Primary"
+                                                   StartIcon="@Icons.Material.Filled.Add"
+                                                   OnClick="AddSubtaskAsync"
+                                                   Disabled="@(string.IsNullOrWhiteSpace(_newSubtaskTitle) || _isAddingSubtask)"
+                                                   Class="rounded-pill full-width-mobile px-4">
+                                            @if (_isAddingSubtask)
+                                            {
+                                                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="me-2" />
+                                            }
+                                            Dodaj
+                                        </MudButton>
+                                    </MudItem>
+                                </MudGrid>
+                            </div>
+
+                            @if (!_subtasks.Any())
+                            {
+                                <div class="text-center pa-8 border-dashed rounded-lg">
+                                    <MudIcon Icon="@Icons.Material.Filled.PlaylistAddCheck" Size="Size.Large" Color="Color.Default" Class="mb-2" />
+                                    <MudText Typo="Typo.body2" Class="text-muted">To opravilo še nima definiranih podopravil.</MudText>
+                                </div>
+                            }
+                            else
+                            {
+                                <MudList T="ToDoResponse" Dense="true" Class="pa-0">
+                                    @foreach (var subtask in _subtasks)
+                                    {
+                                        <div class="subtask-row d-flex align-center justify-space-between rounded-lg pa-2 mb-2 border-light transition-all">
+                                            <div class="d-flex align-center gap-3 style-left-block">
+                                                <MudCheckBox T="bool"
+                                                             Value="@subtask.IsCompleted"
+                                                             ValueChanged="@((bool val) => ToggleSubtaskStatusAsync(subtask, val))"
+                                                             Color="Color.Success"
+                                                             Class="ma-0" />
+
+                                                <MudText Typo="Typo.body1" Class="@(subtask.IsCompleted ? "text-decoration-line-through text-muted" : "text-dark font-weight-semibold")">
+                                                    @subtask.Title
+                                                </MudText>
+                                            </div>
+
+                                            <div class="d-flex align-center gap-1">
+                                                <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                                               Color="Color.Error"
+                                                               Size="Size.Small"
+                                                               Variant="Variant.Text"
+                                                               OnClick="() => NavigateToEdit(subtask.Id)" />
+                                                <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                                               Color="Color.Error"
+                                                               Size="Size.Small"
+                                                               Variant="Variant.Text"
+                                                               OnClick="() => DeleteSubtaskAsync(subtask.Id)" />
+                                            </div>
+                                        </div>
+                                    }
+                                </MudList>
+                            }
+                        </MudCardContent>
+                    </MudCard>
+                </MudStack>
+            </MudItem>
+        </MudGrid>
+    }
+</MudContainer>

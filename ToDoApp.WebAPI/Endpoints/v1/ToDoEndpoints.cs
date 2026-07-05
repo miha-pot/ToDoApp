@@ -40,6 +40,9 @@ public static class ToDoEndpoints
                 .Produces<string>(200)
                 .ProducesProblem(400);
 
+        tagGroup.MapGet("/{parentId:guid}/subtasks", GetSubTasks)
+                .Produces<List<ToDoResponse>>(200);
+
         return app;
     }
 
@@ -95,5 +98,14 @@ public static class ToDoEndpoints
         ServiceResult<bool> result = await toDoService.ChangeCompletionStatus(toDoItemId, cancellationToken);
 
         return result.ToHttpResult();
+    }
+
+    public static async Task<IResult> GetSubTasks(Guid parentId,
+                                                  IToDoService toDoService,
+                                                  CancellationToken cancellationToken)
+    {
+        List<ToDoResponse> toDoItems = await toDoService.GetSubTasks(parentId, cancellationToken);
+
+        return Results.Ok(toDoItems);
     }
 }

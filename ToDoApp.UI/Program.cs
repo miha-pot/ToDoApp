@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using ToDoApp.SharedUI.States;
-using ToDoApp.UI.Extensions;
+using ToDoApp.Web.Extensions;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<ToDoApp.SharedUI.App>("#app");

@@ -1,0 +1,64 @@
+.font-weight-bold {
+    font-weight: 600;
+}
+
+.font-weight-semibold {
+    font-weight: 500;
+}
+
+.text-muted {
+    color: var(--mud-palette-text-secondary);
+}
+
+.uppercase {
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-size: 0.7rem;
+}
+
+.italic {
+    font-style: italic;
+}
+
+.border-bottom {
+    border-bottom: 1px solid var(--mud-palette-background-grey);
+}
+
+.border-light {
+    border: 1px solid var(--mud-palette-background-grey);
+}
+
+.border-dashed {
+    border: 1px dashed var(--mud-palette-divider);
+}
+
+.bg-light-grey {
+    background-color: var(--mud-palette-background-grey);
+}
+
+.style-description {
+    white-space: pre-wrap;
+    max-height: 120px;
+    overflow-y: auto;
+}
+
+/* Elegantna vrstica za subtaske */
+.subtask-row {
+    background-color: var(--mud-palette-surface);
+}
+
+    .subtask-row:hover {
+        background-color: var(--mud-palette-background-grey);
+        box-shadow: var(--mud-elevation-1);
+    }
+
+.style-left-block {
+    max-width: 85%;
+}
+
+@media (max-width: 600px) {
+    .full-width-mobile {
+        width: 100% !important;
+        justify-content: center;
+    }
+}

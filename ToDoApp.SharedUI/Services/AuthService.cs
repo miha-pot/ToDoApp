@@ -4,7 +4,6 @@ using ToDoApp.Shared.AuthDTO.Login;
 using ToDoApp.Shared.AuthDTO.Register;
 using ToDoApp.Shared.AuthDTO.Token;
 using ToDoApp.Shared.Common;
-using ToDoApp.SharedUI.AuthHandlers;
 using ToDoApp.SharedUI.Providers;
 using ToDoApp.SharedUI.ServiceContracts;
 
@@ -16,14 +15,14 @@ public class AuthService : IAuthService
     private readonly IDataStorage _localStorage;
 
     private readonly AuthenticationStateProvider _authStateProvider;
-    private readonly BlazorAuthorizationHandler _authHandler;
+    private readonly IAuthState _authHandler;
 
     private readonly string _endpoint = "auth";
 
     public AuthService(ApiService apiService,
                        IDataStorage localStorage,
                        AuthenticationStateProvider authStateProvider,
-                       BlazorAuthorizationHandler authHandler)
+                       IAuthState authHandler)
     {
         _apiService = apiService;
         _localStorage = localStorage;
@@ -71,9 +70,12 @@ public class AuthService : IAuthService
     private async Task SetUserInLocalStorage(AuthResponse response)
     {
         await _localStorage.SetItemAsync("authToken", response.Token);
-        //await _localStorage.SetItemAsync("refreshToken", response.RefreshToken);
+
+        if (_localStorage.PersistsRefreshToken)
+            await _localStorage.SetItemAsync("refreshToken", response.RefreshToken);
 
         _authHandler.ResetLogoutState();
+
         await ((CustomAuthenticationStateProvider)_authStateProvider).NotifyUserLogin(response.Token);
     }
 

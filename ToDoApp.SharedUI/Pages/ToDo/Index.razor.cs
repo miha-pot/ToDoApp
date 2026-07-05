@@ -186,6 +186,8 @@ public partial class Index : IDisposable
 
     private void NavigateToEdit(Guid id) => NavigationManager.NavigateTo($"/todo/edit/{id}");
 
+    private void NavigateToDetails(Guid id) => NavigationManager.NavigateTo($"/todo/details/{id}");
+
     public void Dispose()
     {
         _cts.Cancel();

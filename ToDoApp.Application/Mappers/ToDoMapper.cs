@@ -52,7 +52,7 @@ public static class ToDoMapper
             DueDate = toDoItem.DueDate,
             Level = (Priority)toDoItem.Level,
             UserId = toDoItem.UserId,
-            ParentToDoId = toDoItem.ParentTodoId
+            ParentToDoId = toDoItem.ParentTodoId,
         };
     }
 
@@ -68,7 +68,7 @@ public static class ToDoMapper
             Level = (Priority)toDoItem.Level,
             UserId = toDoItem.UserId,
             ParentToDoId = toDoItem.ParentTodoId,
-            Tags = toDoItem.TodoItemTags.Select(x => x.Tag.ToResponse()).ToList()
+            Tags = toDoItem.TodoItemTags.Select(x => x.Tag.ToResponse()).ToList(),
         };
     }
 }

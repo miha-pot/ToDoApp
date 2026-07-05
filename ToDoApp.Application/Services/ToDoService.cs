@@ -145,7 +145,7 @@ public class ToDoService : IToDoService
             Title = todo.Title,
             IsCompleted = todo.IsCompleted,
             DueDate = todo.DueDate,
-            Level = (Priority)todo.Level,         
+            Level = (Priority)todo.Level,
             ParentToDoId = todo.ParentTodoId,
             UserId = todo.UserId,
             Description = todo.Description,
@@ -158,6 +158,13 @@ public class ToDoService : IToDoService
                 BgColorHex = tt.Tag.BgColorHex
             }).ToList()
         }, cancellationToken);
+    }
+
+    public async Task<List<ToDoResponse>> GetSubTasks(Guid parentId, CancellationToken cancellationToken)
+    {
+        List<TodoItem> subTasks = await _repository.GetSubTasks(parentId, cancellationToken);
+
+        return subTasks.Select(x => x.ToResponseWithTags()).ToList();
     }
 
     public async Task<ServiceResult<ToDoResponse>> UpdateItem(ToDoUpdateRequest? updateRequest, CancellationToken cancellationToken)

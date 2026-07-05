@@ -1,6 +1,61 @@
 ﻿@page "/not-found"
+@page "/404"
 
-<div class="container py-5">
-    <h3>Not Found</h3>
-    <p>Sorry, the content you are looking for does not exist.</p>
-</div>
+<PageTitle>Stran ni najdena</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Small" Class="d-flex flex-column align-center justify-center" Style="min-height: 80vh;">
+    <MudPaper Elevation="0" Class="d-flex flex-column align-center pa-8" Style="background: transparent;">
+
+        <MudIcon Icon="@Icons.Material.Filled.TravelExplore"
+                 Style="font-size: 6rem;"
+                 Color="Color.Primary"
+                 Class="mb-4 pulse-icon" />
+
+        <MudText Typo="Typo.h1" Style="font-size: 5rem; font-weight: 700; line-height: 1;" Color="Color.Primary">
+            404
+        </MudText>
+
+        <MudText Typo="Typo.h5" Class="mt-4 mb-2" Align="Align.Center">
+            Ojoj, tukaj ni ničesar
+        </MudText>
+
+        <MudText Typo="Typo.body1" Class="mb-6" Align="Align.Center" Color="Color.Secondary">
+            Stran, ki jo iščete, ne obstaja, je bila premaknjena ali izbrisana.
+        </MudText>
+
+        <MudStack Row="true" Spacing="3">
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Home"
+                       OnClick="@(() => NavigationManager.NavigateTo("/"))">
+                Domov
+            </MudButton>
+
+          @*   <MudButton Variant="Variant.Outlined"
+                       Color="Color.Default"
+                       StartIcon="@Icons.Material.Filled.ArrowBack"
+                       OnClick="GoBack">
+                Nazaj
+            </MudButton> *@
+        </MudStack>
+
+    </MudPaper>
+</MudContainer>
+
+<style>
+    .pulse-icon {
+        animation: pulse 2.5s ease-in-out infinite;
+    }
+
+    @@keyframes pulse {
+        0%, 100% {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        50% {
+            opacity: 0.6;
+            transform: scale(1.05);
+        }
+    }
+</style>

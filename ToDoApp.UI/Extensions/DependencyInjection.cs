@@ -1,4 +1,5 @@
 ﻿using FluentValidation;
+using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using MudBlazor.Services;
@@ -8,14 +9,14 @@ using ToDoApp.Shared.TagDTO.Commands;
 using ToDoApp.Shared.TagDTO.Validators;
 using ToDoApp.Shared.ToDoDTO.Commands;
 using ToDoApp.Shared.ToDoDTO.Validators;
-using ToDoApp.SharedUI.AuthHandlers;
 using ToDoApp.SharedUI.Providers;
 using ToDoApp.SharedUI.ServiceContracts;
 using ToDoApp.SharedUI.Services;
 using ToDoApp.SharedUI.States;
-using ToDoApp.UI.Services;
+using ToDoApp.Web.AuthHandlers;
+using ToDoApp.Web.Services;
 
-namespace ToDoApp.UI.Extensions;
+namespace ToDoApp.Web.Extensions;
 
 public static class DependencyInjection
 {
@@ -31,7 +32,7 @@ public static class DependencyInjection
     public static IServiceCollection AddInfrastructureServices(this IServiceCollection services, WebAssemblyHostBuilder builder)
     {
         services.AddSingleton<LanguageState>();
-        services.AddSingleton<IDataStorage, LocalStorageService>();
+        services.AddSingleton<IDataStorage, WebDataStorage>();
         services.AddSingleton(TimeProvider.System);
         services.AddMudServices();
 
@@ -48,7 +49,12 @@ public static class DependencyInjection
             options.BaseAddress = apiBaseUrl;
             options.Timeout = TimeSpan.FromSeconds(30);
         })
-        .AddHttpMessageHandler<BlazorAuthorizationHandler>();
+        .AddHttpMessageHandler(sp =>
+            new WebAuthorizationHandler(sp.GetRequiredService<IDataStorage>(),
+                sp.GetRequiredService<NavigationManager>(),
+                sp.GetRequiredService<IHttpClientFactory>(),
+                sp.GetRequiredService<WebAuthState>())
+        );
 
         services.AddHttpClient("RefreshClient", options =>
         {
@@ -73,7 +79,9 @@ public static class DependencyInjection
 
     public static IServiceCollection AddSecurityServices(this IServiceCollection services)
     {
-        services.AddScoped<BlazorAuthorizationHandler>();
+        services.AddSingleton<WebAuthState>();
+        services.AddSingleton<IAuthState>(sp => sp.GetRequiredService<WebAuthState>());
+
         services.AddCascadingAuthenticationState();
         services.AddAuthorizationCore();
         services.AddScoped<AuthenticationStateProvider, CustomAuthenticationStateProvider>();

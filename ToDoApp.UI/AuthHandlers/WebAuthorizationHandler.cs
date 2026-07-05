@@ -7,23 +7,24 @@ using ToDoApp.Shared.AuthDTO.Token;
 using ToDoApp.SharedUI.ServiceContracts;
 using Microsoft.AspNetCore.Components.WebAssembly.Http;
 
-namespace ToDoApp.SharedUI.AuthHandlers;
+namespace ToDoApp.Web.AuthHandlers;
 
-public class BlazorAuthorizationHandler : DelegatingHandler
+public class WebAuthorizationHandler : DelegatingHandler
 {
     private readonly IDataStorage _dataStorage;
-    private readonly SemaphoreSlim _refreshLock = new(1, 1);
     private readonly NavigationManager _navigationManager;
     private readonly IHttpClientFactory _httpClientFactory;
-    private bool _isLoggingOut = false;
+    private readonly IAuthState _authState;
 
-    public BlazorAuthorizationHandler(IDataStorage dataStorage,
+    public WebAuthorizationHandler(IDataStorage dataStorage,
                                        NavigationManager navigationManager,
-                                       IHttpClientFactory httpClientFactory)
+                                       IHttpClientFactory httpClientFactory,
+                                       IAuthState authState)
     {
         _dataStorage = dataStorage;
         _navigationManager = navigationManager;
         _httpClientFactory = httpClientFactory;
+        _authState = authState;
     }
 
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request,
@@ -34,6 +35,7 @@ public class BlazorAuthorizationHandler : DelegatingHandler
         if (!string.IsNullOrWhiteSpace(token))
         {
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            request.Headers.Add("X-Client-Type", "web");
         }
 
         request.SetBrowserRequestCredentials(BrowserRequestCredentials.Include);
@@ -42,10 +44,10 @@ public class BlazorAuthorizationHandler : DelegatingHandler
 
         if (response.StatusCode != HttpStatusCode.Unauthorized) return response;
 
-        await _refreshLock.WaitAsync(cancellationToken);
+        await _authState.RefreshLock.WaitAsync(cancellationToken);
         try
         {
-            if (_isLoggingOut) return response;
+            if (_authState.IsLoggingOut()) return response;
 
             var currentToken = await _dataStorage.GetItemAsync<string>("authToken");
             if (!string.IsNullOrWhiteSpace(currentToken) && currentToken != token)
@@ -84,18 +86,17 @@ public class BlazorAuthorizationHandler : DelegatingHandler
                 }
             }
 
-            _isLoggingOut = true;
+            _authState.SetLoggingOut();
+
             await _dataStorage.RemoveItemAsync("authToken");
 
-            _navigationManager.NavigateTo("/login");
+            _navigationManager.NavigateTo("/login", forceLoad: true);
 
             return response;
         }
         finally
         {
-            _refreshLock.Release();
+            _authState.RefreshLock.Release();
         }
     }
-
-    public void ResetLogoutState() => _isLoggingOut = false;
 }

@@ -50,6 +50,7 @@
         </ToolBarContent>
 
         <HeaderContent>
+            <MudTh></MudTh>
             <MudTh><MudTableSortLabel T="ToDoResponse" SortLabel="Title">Naslov in opis</MudTableSortLabel></MudTh>
             <MudTh>
                 <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
@@ -86,6 +87,13 @@
         </HeaderContent>
 
         <RowTemplate>
+            <MudTd>
+                <MudIconButton Icon="@(context.IsCompleted ? Icons.Material.Filled.Replay : Icons.Material.Filled.Check)"
+                               Color="@(context.IsCompleted ? Color.Default : Color.Success)"
+                               Size="Size.Small"
+                               Variant="Variant.Outlined"
+                               OnClick="() => RequestCompleteItemAsync(context.Id, context.Title!)" />
+            </MudTd>
             <MudTd DataLabel="Naslov in opis">
                 <MudText Typo="Typo.body1" Class="font-weight-bold text-dark">@context.Title</MudText>
                 <MudText Typo="Typo.body2" Class="text-secondary text-wrap" Style="max-width: 320px; word-break: break-word;">
@@ -142,15 +150,15 @@
                         <MudText Typo="Typo.body2" Color="Color.Warning" Class="d-inline d-sm-none">V teku</MudText>
                     }
                 </div>
-            </MudTd>
+            </MudTd>            
 
             <MudTd DataLabel="Akcije" Class="text-start text-sm-right">
                 <div class="d-inline-flex gap-1">
-                    <MudIconButton Icon="@(context.IsCompleted ? Icons.Material.Filled.Replay : Icons.Material.Filled.Check)"
-                                   Color="@(context.IsCompleted ? Color.Default : Color.Success)"
+                    <MudIconButton Icon="@Icons.Material.Filled.Search"
+                                   Color="Color.Transparent"
                                    Size="Size.Small"
                                    Variant="Variant.Outlined"
-                                   OnClick="() => RequestCompleteItemAsync(context.Id, context.Title!)" />
+                                   OnClick="() => NavigateToDetails(context.Id)" />
                     
                     <MudIconButton Icon="@Icons.Material.Filled.Edit" 
                                    Color="Color.Info" 
@@ -162,7 +170,7 @@
                                    Color="Color.Error" 
                                    Size="Size.Small"
                                    Variant="Variant.Outlined"
-                                   OnClick="() => RequestDeleteAsync(context.Id, context.Title!)" />
+                                   OnClick="() => RequestDeleteAsync(context.Id, context.Title!)" />                   
                 </div>
             </MudTd>
         </RowTemplate>
