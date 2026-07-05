@@ -8,6 +8,8 @@ Dashboard
 List of Todo's
 <img width="2543" height="1312" alt="slika" src="https://github.com/user-attachments/assets/2da4a531-9f9b-415e-b60f-3d72c1262d1e" />
 
+Task Details with subtasks:
+<img width="1915" height="943" alt="slika" src="https://github.com/user-attachments/assets/26e63032-b6a4-4482-8529-8b615bec9488" />
 
 
 ## 🏗️ Architecture & Technology Stack
