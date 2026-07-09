@@ -17,7 +17,7 @@ The application is engineered strictly on the principles of **Clean Architecture
 
 ### Backend (Web API)
 * **Core Framework:** .NET 10.0 Core Web API utilizing optimized **Minimal Endpoints**
-* **Persistence Layer:** Entity Framework Core with Microsoft SQL Server integration (optimized tracking models)
+* **Persistence Layer:** Entity Framework Core with Microsoft SQL Server or PostgreSQL integration (optimized tracking models).
 * **Identity & Security:** ASP.NET Core Identity engine coupled with full **JWT Bearer token** authentication and role-based authorization policy gates
 * **API Versioning:** Robust endpoint contract versioning via `Asp.Versioning.Http` supporting URL segment transitions (`/api/v1/todos`), custom HTTP headers (`x-api-version`), and query parameters
 * **Data Validation:** Strict inbound payload filtration via pipeline-integrated `FluentValidation`
@@ -42,8 +42,9 @@ The application is engineered strictly on the principles of **Clean Architecture
 ├── 📂 ToDoApp.Domain               # Pure domain specifications, decoupled database schemas, entities
 ├── 📂 ToDoApp.Infrastructure       # Infrastructure blueprints (ApplicationDbContext, Repositories, JWT Engines)
 ├── 📂 ToDoApp.Shared               # DTOs which are used on backend and frontend (with fluent validation).
-├── 📂 ToDoApp.UI                   # Client-side Blazor WebAssembly bootstrapper (Client-Program.cs)
-└── 📂 ToDoApp.SharedUI             # Visual layout domain (Razor components, AppState manager, .resx files)
+├── 📂 ToDoApp.Web                  # Client-side Blazor WebAssembly (Web) bootstrapper (Client-Program.cs)
+├── 📂 ToDoApp.Maui                 # Client-side Blazor WebAssembly (Mobile) bootstrapper (Client-Program.cs)
+└── 📂 ToDoApp.SharedUI             # Visual layout domain (Razor components, AppState manager, .resx files). Used for mobile and web.
 ```
 ⚡ Key Architecture & Implementation Details
 1. High-Fidelity Reactive Localization
@@ -59,7 +60,7 @@ Environmental Primitives
 
     .NET 10.0 Software Development Kit (SDK)
 
-    MS SQL Server Instance (LocalDB or Docker Container instance)
+    MS SQL Server Instance (LocalDB or Docker Container instance) or PostgreSQL
 
     Microsoft Visual Studio 2022 (v17.12+) or Visual Studio Code
 
@@ -72,8 +73,9 @@ Navigate into ToDoApp.API and modify appsettings.json. Align target local connec
 {
   "ConnectionStrings": {
     "DbConnection": "Server=YOUR_SQL_INSTANCE;Database=ToDoAppDb;Trusted_Connection=True;TrustServerCertificate=True;"
+    "PostgresConnection": "Host=servername;Port=port;Database=db;Username=username;Password=password",
   },
-  "AllowedOrigins": [ "https://localhost:7001", "http://localhost:5000" ],
+  "AllowedOrigins": [ "https://localhost:7176" ],
   "Jwt": {
     "Issuer": "ToDoAppBackend",
     "Audience": "ToDoAppFrontend",
