@@ -3,14 +3,13 @@
 A high-performance Fullstack task management application built using the latest Microsoft .NET technologies and advanced architectural patterns. This repository showcases a production-ready enterprise solution focusing on security, reactive state management, clean boundaries, and dynamic localization.
 
 Dashboard
-<img width="2550" height="1293" alt="slika" src="https://github.com/user-attachments/assets/75febb08-de63-4c7f-a049-cad3b4408b83" />
+<img width="1904" height="944" alt="slika" src="https://github.com/user-attachments/assets/965325f6-2b45-4fe6-9d8f-f6b300f59399" />
 
 List of Todo's
-<img width="2543" height="1312" alt="slika" src="https://github.com/user-attachments/assets/2da4a531-9f9b-415e-b60f-3d72c1262d1e" />
+<img width="1898" height="942" alt="slika" src="https://github.com/user-attachments/assets/6cf06a40-8111-4d63-b9c6-0c043c5319dd" />
 
 Task Details with subtasks:
-<img width="1915" height="943" alt="slika" src="https://github.com/user-attachments/assets/26e63032-b6a4-4482-8529-8b615bec9488" />
-
+<img width="1909" height="948" alt="slika" src="https://github.com/user-attachments/assets/6ac7bf9d-01ae-47fe-bb03-f32ae8da028f" />
 
 ## 🏗️ Architecture & Technology Stack
 
