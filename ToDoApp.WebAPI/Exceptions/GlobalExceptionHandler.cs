@@ -21,12 +21,13 @@ public class GlobalExceptionHandler : IExceptionHandler
                                                 Exception exception,
                                                 CancellationToken cancellationToken)
     {
+        var exceptionToLog = exception.InnerException ?? exception;
+      
         _logger.LogError(exception,
-                         "An unhandled exception occurred while processing request on {Path}. " +
-                         "Type: {ExceptionType}. Message: {Message}",
+                         "Napaka na poti {Path}: {Message}. Inner: {InnerMessage}",
                          httpContext.Request.Path,
-                         exception.GetType().Name,
-                         exception.Message);
+                         exception.Message,
+                         exception.InnerException?.Message ?? "None");
 
         var (statusCode, title, mappedDetail) = exception switch
         {

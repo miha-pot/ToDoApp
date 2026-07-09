@@ -10,7 +10,7 @@
     <Project Path="ToDoApp.Maui/ToDoApp.Maui.csproj" Id="bb993199-ce39-4d70-a760-dc2fe0ab8bcb">
       <Deploy Solution="Debug|*" />
     </Project>
-    <Project Path="ToDoApp.UI/ToDoApp.Web.csproj" Id="2802be6a-07ba-4017-a0dd-bdaf27bddec7" />
+    <Project Path="ToDoApp.Web/ToDoApp.Web.csproj" Id="2802be6a-07ba-4017-a0dd-bdaf27bddec7" />
   </Folder>
   <Folder Name="/src/Shared/">
     <Project Path="ToDoApp.Shared/ToDoApp.Shared.csproj" Id="5fc55d8e-c1ca-46a9-bd62-4fa35341bac0" />
@@ -21,4 +21,7 @@
     <Project Path="ToDoApp.Domain.UnitTests/ToDoApp.Domain.UnitTests.csproj" Id="6a604fce-1672-4ef9-9c47-0091d81eedfc" />
     <Project Path="ToDoApp.Infrastructure.IntegrationTests/ToDoApp.Infrastructure.IntegrationTests.csproj" Id="102bb9fa-2be0-484a-b8a2-a16775df1f8b" />
   </Folder>
+  <Project Path="docker-compose.dcproj">
+    <Build />
+  </Project>
 </Solution>

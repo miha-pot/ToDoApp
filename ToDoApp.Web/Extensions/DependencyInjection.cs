@@ -42,7 +42,14 @@ public static class DependencyInjection
             BaseAddress = new Uri(builder.HostEnvironment.BaseAddress)
         });
 
+        var backendUrl = builder.Configuration["BackendApiUrl"];
+        if (string.IsNullOrEmpty(backendUrl))
+        {
+            backendUrl = "http://localhost:8080/";
+        }
+
         var apiBaseUrl = new Uri("https://localhost:7186/api/v1/");
+        //var apiBaseUrl = new Uri($"{backendUrl}api/v1/");
 
         services.AddHttpClient<ApiService>(options =>
         {

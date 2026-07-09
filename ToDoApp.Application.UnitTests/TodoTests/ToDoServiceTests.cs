@@ -7,7 +7,7 @@ using ToDoApp.Domain.Entities;
 using ToDoApp.Domain.RepositoryContracts;
 using ToDoApp.Shared.ToDoDTO.Commands;
 
-namespace ToDoApp.Application.UnitTests
+namespace ToDoApp.Application.UnitTests.TodoTests
 {
     public class ToDoServiceTests
     {

@@ -14,7 +14,7 @@ public static class ToDoMapper
             Title = request.Title,
             Description = request.Description,
             UserId = request.UserId,
-            DueDate = request.DueDate,
+            DueDate = request.DueDate?.ToUniversalTime(),
             IsCompleted = request.IsCompleted,
             Level = (int)request.Level,
             ParentTodoId = request.ParentToDoId,
@@ -25,7 +25,7 @@ public static class ToDoMapper
     {
         existingToDo.Title = request.Title;
         existingToDo.Description = request.Description;
-        existingToDo.DueDate = request.DueDate;
+        existingToDo.DueDate = request.DueDate?.ToUniversalTime();
         existingToDo.IsCompleted = request.IsCompleted;
         existingToDo.Level = (int)request.Level;
 

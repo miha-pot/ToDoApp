@@ -1,0 +1,62 @@
+services:
+  todoapp.web:
+    container_name: todoapp-wasm
+    build:
+      context: .
+      dockerfile: ToDoApp.Web/Dockerfile
+    ports:
+      - "8080:80" # Brskalnik bo dostopal do Nginxa na http://localhost:8080
+    restart: always
+    networks:
+      - default
+
+  todoapp.webapi:
+    image: ${DOCKER_REGISTRY-}todoappapi
+    container_name: todoapp-api
+    build:
+      context: .
+      dockerfile: ToDoApp.WebAPI/Dockerfile
+    # PORTS SMO UMAKNILI! API je skrit zunanjemu svetu, Nginx ga vidi interno na portu 8080.
+    environment:
+      - ConnectionStrings__PostgresConnection=Host=todo.database;Port=5432;Database=${DB_DATABASE};Username=${DB_USER};Password=${DB_PASSWORD}
+    # Preglasitev AllowedOrigins za Docker okolje (Nginx port 8080)
+      - AllowedOrigins__0=http://localhost:8080
+      - AllowedOrigins__1=http://localhost:8081
+      
+    # Preglasitev JWT nastavitev za Docker okolje (Nginx port 8080)
+      - Jwt__Key=${JwtKey}
+      - Jwt__Issuer=http://localhost:8080
+      - Jwt__Audience=http://localhost:8080
+      - Migrations__RunOnStartup=true
+    depends_on:
+      todo.database:
+        condition: service_healthy
+    restart: always
+    networks:
+      - default
+
+  todo.database:
+    image: postgres:18-alpine
+    container_name: todoapp-database
+    environment:
+      - POSTGRES_DB=${DB_DATABASE}
+      - POSTGRES_USER=${DB_USER} 
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    # TUDI TUKAJ PORTS LAHKO UMAKNEMO, če bazo uporablja samo API znotraj Dockerja.
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_DATABASE}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - default
+
+volumes:
+  postgres_data:
+
+networks:
+  default:
+    driver: bridge

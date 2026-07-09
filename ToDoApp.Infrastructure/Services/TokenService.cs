@@ -99,5 +99,5 @@ public class TokenService : ITokenService
     private static bool IsTokenNotValid(ApplicationUser? user, string refreshToken) =>
         user == null
         || user.RefreshToken != refreshToken
-        || user.RefreshTokenExpirationDateTime <= DateTime.Now;
+        || user.RefreshTokenExpirationDateTime <= DateTime.UtcNow;
 }

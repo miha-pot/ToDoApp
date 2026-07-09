@@ -6,7 +6,7 @@ using ToDoApp.Domain.Entities;
 using ToDoApp.Infrastructure.DatabaseContext;
 using ToDoApp.Infrastructure.Repositories.EF;
 
-namespace ToDoApp.Application.UnitTests;
+namespace ToDoApp.Application.UnitTests.TodoTests;
 
 public class TodoRepositoryTests
 {

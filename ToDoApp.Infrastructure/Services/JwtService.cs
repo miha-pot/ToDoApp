@@ -56,7 +56,7 @@ public class JwtService : IJwtService
             FirstName = user.FirstName,
             LastName = user.LastName,
             RefreshToken = GenerateRefreshToken(),
-            RefreshTokenExpiration = DateTime.Now.AddMinutes(int.Parse(_configuration["RefreshToken:EXPIRATION_MINUTES"]!))            
+            RefreshTokenExpiration = DateTime.UtcNow.AddMinutes(int.Parse(_configuration["RefreshToken:EXPIRATION_MINUTES"]!))            
         };
     }
 

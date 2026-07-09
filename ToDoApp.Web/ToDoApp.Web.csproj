@@ -22,4 +22,6 @@
 		<ProjectReference Include="..\ToDoApp.Shared\ToDoApp.Shared.csproj" />
 	</ItemGroup>
 
+	<ProjectExtensions><VisualStudio><UserProperties wwwroot_4appsettings_1development_1json__JsonSchema="https://www.schemastore.org/azure-iot-edge-deployment-template-4.0.json" /></VisualStudio></ProjectExtensions>
+
 </Project>

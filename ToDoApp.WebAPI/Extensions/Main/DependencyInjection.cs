@@ -21,10 +21,13 @@ public static class DependencyInjection
         // Database
         services.AddDbContext<ApplicationDbContext>(options =>
         {
-            var connectionString = configuration.GetConnectionString("DbConnection") ??
-                throw new InvalidOperationException("Connection string 'DbConnection' not found.");
+            //var connectionString = configuration.GetConnectionString("DbConnection") ??
+            //    throw new InvalidOperationException("Connection string 'DbConnection' not found.");
+            //options.UseSqlServer(connectionString);
 
-            options.UseSqlServer(connectionString);
+            var connectionString = configuration.GetConnectionString("PostgresConnection") ??
+               throw new InvalidOperationException("Connection string 'PostgresConnection' not found.");
+            options.UseNpgsql(connectionString);
         });
 
         // Repositories

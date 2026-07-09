@@ -1,0 +1,309 @@
+﻿@page "/todo"
+@attribute [Authorize]
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="pt-10 pt-md-16 my-4">
+    <MudGrid Class="align-center mb-4 px-2">
+        <MudItem xs="12" sm="6">
+            <MudText Typo="Typo.h5" Class="mud-typography-weight-bold text-primary d-flex align-center ma-0">
+                <MudIcon Icon="@Icons.Material.Filled.ListAlt" Class="me-2 text-primary" Size="Size.Large" />
+                Upravljanje opravil
+            </MudText>
+        </MudItem>
+        <MudItem xs="12" sm="6" Class="d-flex justify-start justify-sm-end">
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Add"
+                       OnClick="NavigateToCreate"
+                       Class="rounded-pill px-6 mud-elevation-2 full-width-mobile">
+                Novo opravilo
+            </MudButton>
+        </MudItem>
+    </MudGrid>
+
+    <MudPaper Class="pa-4 mb-4 rounded-lg" Elevation="2">
+        <MudGrid Spacing="2" Class="align-center">
+            <MudItem xs="12" sm="6" md="5">
+                <MudTextField T="string"
+                              ValueChanged="@OnSearchChanged"
+                              Placeholder="Išči po naslovu..."
+                              Adornment="Adornment.Start"
+                              AdornmentIcon="@Icons.Material.Filled.Search"
+                              IconSize="Size.Medium"
+                              Class="mt-0"
+                              Clearable="true"
+                              FullWidth="true"
+                              DebounceInterval="500"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="12" sm="6" md="4">
+                <MudSelect T="Priority?"
+                           Label="Filtriraj prioriteto"
+                           Value="_selectedPriorityFilter"
+                           ValueChanged="OnPriorityFilterChanged"
+                           Margin="Margin.Dense"
+                           Variant="Variant.Outlined"
+                           Clearable="true">
+                    <MudSelectItem T="Priority?" Value="null">Vse prioritete</MudSelectItem>
+                    <MudSelectItem T="Priority?" Value="Priority.VeryLow">Zelo nizka</MudSelectItem>
+                    <MudSelectItem T="Priority?" Value="Priority.Low">Nizka</MudSelectItem>
+                    <MudSelectItem T="Priority?" Value="Priority.Medium">Srednja</MudSelectItem>
+                    <MudSelectItem T="Priority?" Value="Priority.High">Visoka</MudSelectItem>
+                    <MudSelectItem T="Priority?" Value="Priority.Critical">Kritična</MudSelectItem>
+                </MudSelect>
+            </MudItem>
+        </MudGrid>
+    </MudPaper>
+
+    <MudTabs Elevation="2"
+             Rounded="true"
+             ApplyEffectsToContainer="true"
+             Class="rounded-lg"
+             @bind-ActivePanelIndex="_activeTabIndex">
+
+        <MudTabPanel Text="V teku" Icon="@Icons.Material.Filled.PendingActions">
+            <MudTable T="ToDoResponse"
+                      ServerData="LoadPendingData"
+                      Hover="true"
+                      Bordered="false"
+                      Striped="true"
+                      Elevation="0"
+                      Breakpoint="Breakpoint.Sm"
+                      Class="font-fix"
+                      @ref="_pendingTable">
+
+                <HeaderContent>
+                    <MudTh></MudTh>
+                    <MudTh><MudTableSortLabel T="ToDoResponse" SortLabel="Title">Naslov in opis</MudTableSortLabel></MudTh>
+                    <MudTh><MudTableSortLabel T="ToDoResponse" SortLabel="Level">Prioriteta</MudTableSortLabel></MudTh>
+                    <MudTh>Oznake</MudTh>
+                    <MudTh><MudTableSortLabel T="ToDoResponse" SortLabel="DueDate">Rok izvedbe</MudTableSortLabel></MudTh>
+                    <MudTh Style="text-align: right;">Akcije</MudTh>
+                </HeaderContent>
+
+                <RowTemplate>
+                    <MudTd>
+                        <MudIconButton Icon="@Icons.Material.Filled.Check"
+                                       Color="Color.Success"
+                                       Size="Size.Small"
+                                       Variant="Variant.Outlined"
+                                       OnClick="() => RequestCompleteItemAsync(context.Id, context.Title!)" />
+                    </MudTd>
+                    <MudTd DataLabel="Naslov in opis">
+                        <MudText Typo="Typo.body1" Class="font-weight-bold text-dark">@context.Title</MudText>
+                        <MudText Typo="Typo.body2" Class="text-secondary text-wrap" Style="max-width: 320px; word-break: break-word;">
+                            @context.Description
+                        </MudText>
+                    </MudTd>
+                    <MudTd DataLabel="Prioriteta">
+                        <MudChip T="string" Color="@GetMudChipColor(context.Level)" Variant="Variant.Filled" Size="Size.Small" Class="font-weight-bold ma-0 text-white">
+                            @context.Level.GetDisplayName()
+                        </MudChip>
+                    </MudTd>
+                    <MudTd DataLabel="Oznake">
+                        <MudStack Row="true" Wrap="Wrap.Wrap" Spacing="1">
+                            @if (context.Tags != null && context.Tags.Any())
+                            {
+                                @foreach (var tag in context.Tags)
+                                {
+                                    <MudChip T="string"
+                                             Size="Size.Small"
+                                             Variant="Variant.Filled"
+                                             Style="@($"color: {tag.ColorHex}; background-color: {tag.BgColorHex}; font-weight: bold; font-size: 0.72rem; border-radius: 4px;")">
+                                        @tag.Name
+                                    </MudChip>
+                                }
+                            }
+                            else
+                            {
+                                <MudText Typo="Typo.caption" Class="text-muted italic">Brez oznak</MudText>
+                            }
+                        </MudStack>
+                    </MudTd>
+                    <MudTd DataLabel="Rok izvedbe">
+                        <div class="d-flex align-center">
+                            <MudIcon Icon="@Icons.Material.Filled.Event" Size="Size.Small" Class="text-muted me-1 d-inline d-sm-none" />
+                            <MudText Typo="Typo.body2">
+                                @(context.DueDate.HasValue ? context.DueDate.Value.ToLocalTime().ToString("dd. MM. yyyy") : "/")
+                            </MudText>
+                        </div>
+                    </MudTd>
+                    <MudTd DataLabel="Akcije" Class="text-start text-sm-right">
+                        <div class="d-inline-flex gap-1">
+                            <MudIconButton Icon="@Icons.Material.Filled.Search"
+                                           Color="Color.Transparent"
+                                           Size="Size.Small"
+                                           Variant="Variant.Outlined"
+                                           OnClick="() => NavigateToDetails(context.Id)" />
+                            <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                           Color="Color.Info"
+                                           Size="Size.Small"
+                                           Variant="Variant.Outlined"
+                                           OnClick="() => NavigateToEdit(context.Id)" />
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                           Color="Color.Error"
+                                           Size="Size.Small"
+                                           Variant="Variant.Outlined"
+                                           OnClick="() => RequestDeleteAsync(context.Id, context.Title!)" />
+                        </div>
+                    </MudTd>
+                </RowTemplate>
+
+                <NoRecordsContent>
+                    <div class="pa-6 text-center">
+                        <MudIcon Icon="@Icons.Material.Filled.Inbox" Size="Size.Large" Color="Color.Default" Class="mb-2" />
+                        <MudText Typo="Typo.body1" Class="text-muted">Ni opravil v teku.</MudText>
+                    </div>
+                </NoRecordsContent>
+
+                <LoadingContent>
+                    <div class="pa-6 text-center">
+                        <MudProgressCircular Color="Color.Primary" Indeterminate="true" Class="mb-2" />
+                        <MudText Typo="Typo.body1" Class="text-muted">Nalagam podatke s strežnika...</MudText>
+                    </div>
+                </LoadingContent>
+
+                <PagerContent>
+                    <MudTablePager RowsPerPageString="Vrstic na stran:"
+                                   HideRowsPerPage="false"
+                                   InfoFormat="{first_item}-{last_item} od {all_items}" />
+                </PagerContent>
+            </MudTable>
+        </MudTabPanel>
+
+        <MudTabPanel Text="Zaključeno" Icon="@Icons.Material.Filled.CheckCircle">
+            <MudTable T="ToDoResponse"
+                      ServerData="LoadCompletedData"
+                      Hover="true"
+                      Bordered="false"
+                      Striped="true"
+                      Elevation="0"
+                      Breakpoint="Breakpoint.Sm"
+                      Class="font-fix"
+                      @ref="_completedTable">
+
+                <HeaderContent>
+                    <MudTh></MudTh>
+                    <MudTh><MudTableSortLabel T="ToDoResponse" SortLabel="Title">Naslov in opis</MudTableSortLabel></MudTh>
+                    <MudTh><MudTableSortLabel T="ToDoResponse" SortLabel="Level">Prioriteta</MudTableSortLabel></MudTh>
+                    <MudTh>Oznake</MudTh>
+                    <MudTh><MudTableSortLabel T="ToDoResponse" SortLabel="DueDate">Rok izvedbe</MudTableSortLabel></MudTh>
+                    <MudTh Style="text-align: right;">Akcije</MudTh>
+                </HeaderContent>
+
+                <RowTemplate>
+                    <MudTd>
+                        <MudIconButton Icon="@Icons.Material.Filled.Replay"
+                                       Color="Color.Default"
+                                       Size="Size.Small"
+                                       Variant="Variant.Outlined"
+                                       OnClick="() => RequestCompleteItemAsync(context.Id, context.Title!)" />
+                    </MudTd>
+                    <MudTd DataLabel="Naslov in opis">
+                        <MudText Typo="Typo.body1" Class="font-weight-bold text-dark">@context.Title</MudText>
+                        <MudText Typo="Typo.body2" Class="text-secondary text-wrap" Style="max-width: 320px; word-break: break-word;">
+                            @context.Description
+                        </MudText>
+                    </MudTd>
+                    <MudTd DataLabel="Prioriteta">
+                        <MudChip T="string" Color="@GetMudChipColor(context.Level)" Variant="Variant.Filled" Size="Size.Small" Class="font-weight-bold ma-0 text-white">
+                            @context.Level.GetDisplayName()
+                        </MudChip>
+                    </MudTd>
+                    <MudTd DataLabel="Oznake">
+                        <MudStack Row="true" Wrap="Wrap.Wrap" Spacing="1">
+                            @if (context.Tags != null && context.Tags.Any())
+                            {
+                                @foreach (var tag in context.Tags)
+                                {
+                                    <MudChip T="string"
+                                             Size="Size.Small"
+                                             Variant="Variant.Filled"
+                                             Style="@($"color: {tag.ColorHex}; background-color: {tag.BgColorHex}; font-weight: bold; font-size: 0.72rem; border-radius: 4px;")">
+                                        @tag.Name
+                                    </MudChip>
+                                }
+                            }
+                            else
+                            {
+                                <MudText Typo="Typo.caption" Class="text-muted italic">Brez oznak</MudText>
+                            }
+                        </MudStack>
+                    </MudTd>
+                    <MudTd DataLabel="Rok izvedbe">
+                        <div class="d-flex align-center">
+                            <MudIcon Icon="@Icons.Material.Filled.Event" Size="Size.Small" Class="text-muted me-1 d-inline d-sm-none" />
+                            <MudText Typo="Typo.body2">
+                                @(context.DueDate.HasValue ? context.DueDate.Value.ToLocalTime().ToString("dd. MM. yyyy") : "/")
+                            </MudText>
+                        </div>
+                    </MudTd>
+                    <MudTd DataLabel="Akcije" Class="text-start text-sm-right">
+                        <div class="d-inline-flex gap-1">
+                            <MudIconButton Icon="@Icons.Material.Filled.Search"
+                                           Color="Color.Transparent"
+                                           Size="Size.Small"
+                                           Variant="Variant.Outlined"
+                                           OnClick="() => NavigateToDetails(context.Id)" />
+                            <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                           Color="Color.Info"
+                                           Size="Size.Small"
+                                           Variant="Variant.Outlined"
+                                           OnClick="() => NavigateToEdit(context.Id)" />
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                           Color="Color.Error"
+                                           Size="Size.Small"
+                                           Variant="Variant.Outlined"
+                                           OnClick="() => RequestDeleteAsync(context.Id, context.Title!)" />
+                        </div>
+                    </MudTd>
+                </RowTemplate>
+
+                <NoRecordsContent>
+                    <div class="pa-6 text-center">
+                        <MudIcon Icon="@Icons.Material.Filled.Inbox" Size="Size.Large" Color="Color.Default" Class="mb-2" />
+                        <MudText Typo="Typo.body1" Class="text-muted">Ni zaključenih opravil.</MudText>
+                    </div>
+                </NoRecordsContent>
+
+                <LoadingContent>
+                    <div class="pa-6 text-center">
+                        <MudProgressCircular Color="Color.Primary" Indeterminate="true" Class="mb-2" />
+                        <MudText Typo="Typo.body1" Class="text-muted">Nalagam podatke s strežnika...</MudText>
+                    </div>
+                </LoadingContent>
+
+                <PagerContent>
+                    <MudTablePager RowsPerPageString="Vrstic na stran:"
+                                   HideRowsPerPage="false"
+                                   InfoFormat="{first_item}-{last_item} od {all_items}" />
+                </PagerContent>
+            </MudTable>
+        </MudTabPanel>
+    </MudTabs>
+</MudContainer>
+
+<style>
+    .font-weight-bold {
+        font-weight: 600;
+    }
+
+    .text-muted {
+        color: var(--mud-palette-text-secondary);
+    }
+
+    .italic {
+        font-style: italic;
+    }
+
+    @@media (max-width: 600px) {
+        .full-width-mobile {
+            width: 100% !important;
+            justify-content: center;
+        }
+
+        .mud-table-cell {
+            padding: 8px 16px !important;
+        }
+    }
+</style>
