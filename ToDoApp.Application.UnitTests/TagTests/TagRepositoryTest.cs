@@ -3,7 +3,9 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using NSubstitute;
 using ToDoApp.Domain.Entities;
+using ToDoApp.Domain.RepositoryContracts;
 using ToDoApp.Infrastructure.DatabaseContext;
+using ToDoApp.Infrastructure.Repositories;
 using ToDoApp.Infrastructure.Repositories.EF;
 
 namespace ToDoApp.Application.UnitTests.TagTests;
@@ -11,10 +13,12 @@ namespace ToDoApp.Application.UnitTests.TagTests;
 public class TagRepositoryTests
 {
     private readonly IHttpContextAccessor _mockHttpContextAccessor;
+    private readonly ICurrentUserRepository _mockCurrentUserRepository;
 
     public TagRepositoryTests()
     {
         _mockHttpContextAccessor = Substitute.For<HttpContextAccessor>();
+        _mockCurrentUserRepository = Substitute.For<CurrentUserRepository>();
     }
 
     private ApplicationDbContext CreateInMemoryDbContext()
@@ -29,7 +33,7 @@ public class TagRepositoryTests
     public async Task AddAsync_Should_InsertTag_IntoDatabase()
     {
         using var context = CreateInMemoryDbContext();
-        var repository = new TagRepository(context);
+        var repository = new TagRepository(context, _mockCurrentUserRepository);
 
         var tagId = Guid.NewGuid();
         var tag = new Tag
@@ -60,7 +64,7 @@ public class TagRepositoryTests
         await context.Tags.AddAsync(existingTag);
         await context.SaveChangesAsync();
 
-        var repository = new TagRepository(context);
+        var repository = new TagRepository(context, _mockCurrentUserRepository);
 
         var result = await repository.GetByIdAsync(tagId, CancellationToken.None);
 
@@ -73,7 +77,7 @@ public class TagRepositoryTests
     public async Task GetByIdAsync_Should_ReturnNull_WhenItemDoesNotExist()
     {
         using var context = CreateInMemoryDbContext();
-        var repository = new TagRepository(context);
+        var repository = new TagRepository(context, _mockCurrentUserRepository);
 
         var result = await repository.GetByIdAsync(Guid.NewGuid(), CancellationToken.None);
 
@@ -90,7 +94,7 @@ public class TagRepositoryTests
         await context.Tags.AddAsync(originalTag);
         await context.SaveChangesAsync();
 
-        var repository = new TagRepository(context);
+        var repository = new TagRepository(context, _mockCurrentUserRepository);
         var tagToUpdate = await context.Tags.FindAsync(tagId);
 
         tagToUpdate!.Name = "Novi naziv";
@@ -114,7 +118,7 @@ public class TagRepositoryTests
         await context.Tags.AddAsync(tagToDelete);
         await context.SaveChangesAsync();
 
-        var repository = new TagRepository(context);
+        var repository = new TagRepository(context, _mockCurrentUserRepository);
 
         var result = await repository.DeleteAsync(tagId, CancellationToken.None);
 

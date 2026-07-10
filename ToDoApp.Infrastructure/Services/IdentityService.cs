@@ -18,19 +18,16 @@ namespace ToDoApp.Infrastructure.Services;
 
 public class IdentityService : IIdentityService
 {
-    private readonly SignInManager<ApplicationUser> _signInManager;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly ITokenService _tokenService;
     private readonly IRefreshTokenCookieService _cookieService;
 
-    public IdentityService(SignInManager<ApplicationUser> signInManager,
-                           UserManager<ApplicationUser> userManager,
+    public IdentityService(UserManager<ApplicationUser> userManager,
                            ITokenService tokenService,
                            IHttpContextAccessor httpContextAccessor,
                            IRefreshTokenCookieService cookieService)
     {
-        _signInManager = signInManager;
         _userManager = userManager;
         _tokenService = tokenService;
         _httpContextAccessor = httpContextAccessor;
@@ -57,8 +54,6 @@ public class IdentityService : IIdentityService
                                                        HttpStatusCode.BadRequest);
         }
 
-        await _signInManager.SignInAsync(user, isPersistent: true);
-
         return await IssueAuthResponseAsync(user);
     }
 
@@ -72,18 +67,8 @@ public class IdentityService : IIdentityService
                                                        HttpStatusCode.BadRequest);
         }
 
-        SignInResult signInResult = await _signInManager.CheckPasswordSignInAsync(user,
-                                                                                  loginRequest.Password,
-                                                                                  lockoutOnFailure: true);
-
-        if (signInResult.IsLockedOut)
-        {
-            return ServiceResult<AuthResponse>.Failure("Login error!",
-                                                       "This account is temporarily locked out.",
-                                                       HttpStatusCode.BadRequest);
-        }
-
-        if (!signInResult.Succeeded)
+        bool result = await _userManager.CheckPasswordAsync(user, loginRequest.Password);
+        if (!result)
         {
             return ServiceResult<AuthResponse>.Failure("Login error!",
                                                        "Invalid email or password parameters.",
@@ -197,7 +182,6 @@ public class IdentityService : IIdentityService
         if (!string.IsNullOrWhiteSpace(tokenRequest.RefreshToken))
         {
             await _tokenService.RevokeRefreshTokenAsync(tokenRequest);
-            await _signInManager.SignOutAsync();
         }
 
         if (!isMobile)

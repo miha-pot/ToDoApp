@@ -1,6 +1,5 @@
 ﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using ToDoApp.Domain.Identity;
@@ -12,7 +11,7 @@ public static class IdentityExtensions
 {
     public static IServiceCollection AddIdentityAndAuth(this IServiceCollection services, IConfiguration configuration)
     {
-        services.AddIdentity<ApplicationUser, ApplicationRole>(options =>
+        services.AddIdentityCore<ApplicationUser>(options =>
         {
             options.Password.RequiredLength = 5;
             options.Password.RequireNonAlphanumeric = false;
@@ -20,10 +19,9 @@ public static class IdentityExtensions
             options.Password.RequireDigit = false;
             options.Password.RequireUppercase = false;
         })
+        .AddRoles<ApplicationRole>() 
         .AddEntityFrameworkStores<ApplicationDbContext>()
-        .AddDefaultTokenProviders()
-        .AddUserStore<UserStore<ApplicationUser, ApplicationRole, ApplicationDbContext, Guid>>()
-        .AddRoleStore<RoleStore<ApplicationRole, ApplicationDbContext, Guid>>();
+        .AddDefaultTokenProviders();
 
         services.AddAuthentication(options =>
         {
