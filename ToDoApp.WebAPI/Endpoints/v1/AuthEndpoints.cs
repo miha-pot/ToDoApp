@@ -68,7 +68,7 @@ public static class AuthEndpoints
                                              HttpContext httpContext)
     {
 
-        await identityService.Logout(token);
+        await identityService.LogoutAsync(token);
 
         return Results.NoContent();
     }

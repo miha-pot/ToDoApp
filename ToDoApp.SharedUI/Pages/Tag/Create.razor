@@ -1,58 +1,75 @@
 ﻿@page "/tag/create"
 
-<MudGrid Justify="Justify.Center" Style="min-height: 85vh; align-items: center; padding: 16px;">
-    <MudItem xs="12" sm="8" md="5" lg="4">
-        <MudCard Elevation="3" Class="rounded-lg">
-
-            <MudCardHeader Style="background-color: var(--mud-palette-primary); color: white;" Class="py-4">
+<MudGrid Justify="Justify.Center" Style="min-height: 85vh; align-items: center; padding: 24px;">
+    <MudItem xs="12" sm="10" md="7" lg="5">
+        <MudCard Elevation="1" Class="border rounded-lg" Style="border-color: var(--mud-palette-lines-inputs);">
+            
+            @* Glava kartice - Čist, "enterprise-ready" stil *@
+            <MudCardHeader Class="py-5 px-6 border-bottom" Style="border-color: var(--mud-palette-lines-elements);">
                 <CardHeaderContent>
-                    <div class="d-flex align-center gap-2">
-                        <MudIcon Icon="@Icons.Material.Filled.AddCircle" Color="Color.Inherit" />
-                        <MudText Typo="Typo.h6" Style="font-weight: 600;">Create tag</MudText>
+                    <div class="d-flex align-center gap-3">
+                        <MudIcon Icon="@Icons.Material.Outlined.Label" Color="Color.Primary" Size="Size.Medium" />
+                        <div class="d-flex flex-column">
+                            <MudText Typo="Typo.h6" Style="font-weight: 600; letter-spacing: -0.5px;">Ustvari Novo Značko</MudText>
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary">Definirajte ime, barvno shemo in začetni status nove kategorije.</MudText>
+                        </div>
                     </div>
                 </CardHeaderContent>
             </MudCardHeader>
 
             <MudCardContent Class="pa-6">
                 <MudForm @ref="_form" Model="@_model" Validation="@(_validator.ValidateValue())">
-
-                    <MudGrid Spacing="3">
+                    <MudGrid Spacing="4">
+                        
+                        @* Vnos imena značke *@
                         <MudItem xs="12">
                             <MudTextField @bind-Value="_model.Name"
-                                          Label="Tag"
+                                          Label="Ime značke"
                                           Variant="Variant.Outlined"
-                                          Placeholder="Npr. Pripravi poročilo..."
+                                          Placeholder="Npr. Nujno, Proizvodnja, IT..."
                                           For="@(() => _model.Name)"
                                           Immediate="true" />
                         </MudItem>
-                    </MudGrid>
-                    <MudGrid Class="align-center">
-                        <MudItem xs="12" md="6">
-                            <MudStack Spacing="4">
+
+                        @* Izbira barv in predogled *@
+                        <MudItem xs="12" sm="7">
+                            <MudStack Spacing="3">
                                 <MudColorPicker @bind-Value="PickerColor"
-                                                Label="Color"
+                                                Label="Barva besedila"
                                                 Variant="Variant.Outlined"
                                                 PickerVariant="PickerVariant.Inline" />
 
                                 <MudColorPicker @bind-Value="BgPickerColor"
-                                                Label="Background color"
+                                                Label="Barva ozadja"
                                                 Variant="Variant.Outlined"
                                                 PickerVariant="PickerVariant.Inline" />
                             </MudStack>
                         </MudItem>
 
-                        <MudItem xs="12" md="6">
-                            <MudPaper Class="pa-6 d-flex flex-column align-center justify-center"
-                                      Style="min-height: 165px; background-color: var(--mud-palette-background-grey);">
-
-                                <MudText Typo="Typo.caption" Class="mud-text-secondary mb-3">Preview:</MudText>
-
+                        <MudItem xs="12" sm="5">
+                            <MudPaper Class="pa-4 d-flex flex-column align-center justify-center border border-dashed rounded-lg"
+                                      Style="min-height: 146px; background-color: var(--mud-palette-background-grey); height: 100%;">
+                                <MudText Typo="Typo.caption" Class="mud-text-secondary mb-2" Style="text-transform: uppercase; font-weight: 700; font-size: 0.65rem;">Predogled:</MudText>
                                 <MudChip T="string"
-                                         Style="@($"color: {PickerColor}; background-color: {BgPickerColor}; font-weight: bold; font-size: 1.1rem; padding: 18px 24px;")">
-                                    Example
+                                         Style="@($"color: {PickerColor}; background-color: {BgPickerColor}; font-weight: 600; font-size: 0.9rem; padding: 12px 16px; margin: 0;")">
+                                    @(!string.IsNullOrWhiteSpace(_model.Name) ? _model.Name : "Vzorec")
                                 </MudChip>
                             </MudPaper>
                         </MudItem>
+
+                        @* Status aktivnosti elementa ob kreiranju *@
+                        <MudItem xs="12">
+                            <MudPaper Class="pa-4 d-flex align-center justify-space-between border rounded-lg" Style="background-color: var(--mud-palette-background-grey);">
+                                <div class="d-flex flex-column">
+                                    <MudText Typo="Typo.body2" Style="font-weight: 600;">Takoj aktiviraj značko</MudText>
+                                    <MudText Typo="Typo.caption" Class="mud-text-secondary">Če je preklopnik vklopljen, bo značka takoj na voljo za dodeljevanje opravilom.</MudText>
+                                </div>
+                                <MudSwitch @bind-Value="_model.IsActive" 
+                                           Color="Color.Success" 
+                                           UncheckedColor="Color.Default" />
+                            </MudPaper>
+                        </MudItem>
+
                     </MudGrid>
                 </MudForm>
 
@@ -64,11 +81,12 @@
                 }
             </MudCardContent>
 
-            <MudCardActions Class="d-flex justify-end gap-2 pa-6 border-top">
-                <MudButton Variant="Variant.Text"
+            @* Gumbi za akcije z ustreznim ozadjem *@
+            <MudCardActions Class="d-flex justify-end gap-2 py-4 px-6 border-top" Style="background-color: var(--mud-palette-background-grey); border-color: var(--mud-palette-lines-elements);">
+                <MudButton Variant="Variant.Outlined"
                            OnClick="Cancel"
                            Disabled="@_isSubmitting"
-                           Class="px-6 rounded-pill">
+                           Class="px-5">
                     Prekliči
                 </MudButton>
 
@@ -76,15 +94,16 @@
                            Color="Color.Primary"
                            OnClick="HandleValidSubmit"
                            Disabled="@_isSubmitting"
-                           Class="px-6 rounded-pill">
+                           Class="px-5"
+                           DropShadow="false">
                     @if (_isSubmitting)
                     {
                         <MudProgressCircular Class="ms-n1 me-2" Size="Size.Small" Indeterminate="true" />
-                        <span>Saving...</span>
+                        <span>Ustvarjanje...</span>
                     }
                     else
                     {
-                        <span>Save tag</span>
+                        <span>Ustvari značko</span>
                     }
                 </MudButton>
             </MudCardActions>

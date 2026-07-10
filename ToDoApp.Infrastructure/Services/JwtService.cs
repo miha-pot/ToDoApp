@@ -1,95 +1,93 @@
-﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using System.Security.Cryptography;
 using System.Text;
+using Microsoft.AspNetCore.Identity;
 using ToDoApp.Application.ServiceContracts.Identity;
 using ToDoApp.Domain.Identity;
-using ToDoApp.Shared.AuthDTO;
 
 namespace ToDoApp.Infrastructure.Services;
 
+/// <summary>
+/// Responsible only for creating and validating JWT access tokens.
+/// Refresh-token generation and AuthResponse assembly live in TokenService.
+/// </summary>
 public class JwtService : IJwtService
 {
     private readonly IConfiguration _configuration;
+    private readonly UserManager<ApplicationUser> _userManager;
+    private readonly SymmetricSecurityKey _signingKey;
 
-    public JwtService(IConfiguration configuration)
+    public JwtService(IConfiguration configuration, UserManager<ApplicationUser> userManager)
     {
         _configuration = configuration;
+        _userManager = userManager;
+        _signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]!));
     }
 
-    public AuthResponse CreateJwtToken(ApplicationUser user)
+    public async Task<(string Token, DateTime Expiration)> CreateJwtTokenAsync(ApplicationUser user)
     {
-        DateTime expiration = DateTime.UtcNow.AddMinutes(Convert.ToDouble(_configuration["Jwt:EXPIRATION_MINUTES"]));
-        var now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-        Claim[] claims =
-            [
-                new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
-                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-                new Claim(JwtRegisteredClaimNames.Iat, now.ToString(),ClaimValueTypes.Integer64),
-                new Claim(ClaimTypes.NameIdentifier, user.Email!.ToString()),
-                new Claim(ClaimTypes.Email, user.Email!.ToString()),
-                new Claim(ClaimTypes.Name, user.FirstName!.ToString()),
-                new Claim(ClaimTypes.Surname, user.LastName!.ToString())
-            ];
+        var expiration = DateTime.UtcNow.AddMinutes(Convert.ToDouble(_configuration["Jwt:EXPIRATION_MINUTES"]));
+        var claims = await BuildClaimsAsync(user);
 
-        var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]!));
-        var signingCredentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
-
-        var tokenGenerator = new JwtSecurityToken(
-            _configuration["Jwt:Issuer"],
-            _configuration["Jwt:Audience"],
-            claims,
+        var jwtSecurityToken = new JwtSecurityToken(
+            issuer: _configuration["Jwt:Issuer"],
+            audience: _configuration["Jwt:Audience"],
+            claims: claims,
             expires: expiration,
-            signingCredentials: signingCredentials);
+            signingCredentials: new SigningCredentials(_signingKey, SecurityAlgorithms.HmacSha256));
 
-        var tokenHandler = new JwtSecurityTokenHandler();
-        var token = tokenHandler.WriteToken(tokenGenerator);
-
-        return new AuthResponse()
-        {
-            UserId = user.Id,
-            Token = token,
-            Email = user.Email,
-            Expiration = expiration,
-            FirstName = user.FirstName,
-            LastName = user.LastName,
-            RefreshToken = GenerateRefreshToken(),
-            RefreshTokenExpiration = DateTime.UtcNow.AddMinutes(int.Parse(_configuration["RefreshToken:EXPIRATION_MINUTES"]!))            
-        };
+        var token = new JwtSecurityTokenHandler().WriteToken(jwtSecurityToken);
+        return (token, expiration);
     }
 
-    public ClaimsPrincipal? GetPrincipalFromJwtToken(string? token)
+    /// <summary>
+    /// Validates signature/issuer/audience but deliberately ignores expiry — used to identify
+    /// the user behind an expired access token during refresh/revoke flows. Throws
+    /// SecurityTokenException if the signature/algorithm is invalid.
+    /// </summary>
+    public ClaimsPrincipal GetPrincipalFromExpiredToken(string token)
     {
-        var tokenValidationParameters = new TokenValidationParameters()
+        var tokenValidationParameters = new TokenValidationParameters
         {
             ValidateAudience = true,
             ValidAudience = _configuration["Jwt:Audience"],
             ValidateIssuer = true,
             ValidIssuer = _configuration["Jwt:Issuer"],
             ValidateIssuerSigningKey = true,
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]!)),
+            IssuerSigningKey = _signingKey,
             ValidateLifetime = false
         };
 
-        JwtSecurityTokenHandler jwtSecurityTokenHandler = new();
-        ClaimsPrincipal principal = jwtSecurityTokenHandler.ValidateToken(token, tokenValidationParameters, out SecurityToken securityToken);
+        var principal = new JwtSecurityTokenHandler()
+            .ValidateToken(token, tokenValidationParameters, out var securityToken);
 
         if (securityToken is not JwtSecurityToken jwtSecurityToken ||
             !jwtSecurityToken.Header.Alg.Equals(SecurityAlgorithms.HmacSha256, StringComparison.InvariantCultureIgnoreCase))
         {
-            throw new SecurityTokenException("Invalid token!");
+            throw new SecurityTokenException("Invalid token algorithm.");
         }
 
         return principal;
     }
 
-    private static string GenerateRefreshToken()
+    private async Task<List<Claim>> BuildClaimsAsync(ApplicationUser user)
     {
-        byte[] bytes = new byte[64];
-        var randomNumberGenerator = RandomNumberGenerator.Create();
-        randomNumberGenerator.GetBytes(bytes);
-        return Convert.ToBase64String(bytes);
+        var claims = new List<Claim>
+        {
+            new(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
+            new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+            new(JwtRegisteredClaimNames.Iat, DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64),
+            new(ClaimTypes.NameIdentifier, user.Email!),
+            new(ClaimTypes.Email, user.Email!),
+            new(ClaimTypes.Name, user.FirstName!),
+            new(ClaimTypes.Surname, user.LastName!)
+        };
+
+        var roles = await _userManager.GetRolesAsync(user);
+        claims.AddRange(roles.Select(role => new Claim(ClaimTypes.Role, role)));
+
+        return claims;
     }
 }

@@ -15,5 +15,5 @@ public interface IIdentityService
     Task<ServiceResult<AuthResponse>> RefreshTokenAsync(TokenRequest tokenDTO);
     Task<ServiceResult<string>> ForgotPasswordAsync(ForgotPassRequest forgotPassDTO);
     Task<ServiceResult<string>> ResetPasswordAsync(ResetPassRequest resetPassDTO);
-    Task Logout(TokenRequest tokenRequest);
+    Task<ServiceResult<object>> LogoutAsync(TokenRequest tokenRequest);
 }

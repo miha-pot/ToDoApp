@@ -2,9 +2,9 @@
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using ToDoApp.Domain.Entities;
 
-namespace ToDoApp.Infrastructure.Configurations.FluentConfigs;
+namespace ToDoApp.Infrastructure.Configurations;
 
-public class FluentTagConfig : IEntityTypeConfiguration<Tag>
+public class TagConfig : IEntityTypeConfiguration<Tag>
 {
     public void Configure(EntityTypeBuilder<Tag> builder)
     {

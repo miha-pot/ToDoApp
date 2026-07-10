@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Configuration;
+using Microsoft.IdentityModel.Tokens;
 using System.Net;
 using System.Security.Claims;
 using ToDoApp.Application.ServiceContracts.Identity;
@@ -13,80 +15,67 @@ public class TokenService : ITokenService
 {
     private readonly IJwtService _jwtService;
     private readonly UserManager<ApplicationUser> _userManager;
+    private readonly IConfiguration _configuration;
 
     public TokenService(IJwtService jwtService,
-                        UserManager<ApplicationUser> userManager)
+                        UserManager<ApplicationUser> userManager,
+                        IConfiguration configuration)
     {
         _jwtService = jwtService;
         _userManager = userManager;
+        _configuration = configuration;
     }
 
-    public async Task<AuthResponse> CreateAuthResponseAsync(ApplicationUser? user)
+    public async Task<AuthResponse> CreateAuthResponseAsync(ApplicationUser user)
     {
-        AuthResponse authResponse = _jwtService.CreateJwtToken(user!);
+        var (jwtToken, jwtExpiration) = await _jwtService.CreateJwtTokenAsync(user);
 
-        user!.RefreshToken = authResponse.RefreshToken;
-        user.RefreshTokenExpirationDateTime = authResponse.RefreshTokenExpiration;
+        var refreshToken = RefreshTokenGenerator.Generate();
+        var refreshTokenExpiration = DateTime.UtcNow.AddMinutes(
+            int.Parse(_configuration["RefreshToken:EXPIRATION_MINUTES"]!));
 
+        user.RefreshToken = refreshToken;
+        user.RefreshTokenExpirationDateTime = refreshTokenExpiration;
         await _userManager.UpdateAsync(user);
 
-        return authResponse;
+        return new AuthResponse
+        {
+            UserId = user.Id,
+            Token = jwtToken,
+            Email = user.Email!,
+            Expiration = jwtExpiration,
+            FirstName = user.FirstName!,
+            LastName = user.LastName ?? string.Empty,
+            RefreshToken = refreshToken,
+            RefreshTokenExpiration = refreshTokenExpiration
+        };
     }
 
     public async Task<ServiceResult<AuthResponse>> RefreshSessionAsync(TokenRequest tokenRequest)
     {
-        ClaimsPrincipal? principal = _jwtService.GetPrincipalFromJwtToken(tokenRequest.Token);
-
-        if (principal == null)
+        var userResult = await ResolveUserFromAccessTokenAsync(tokenRequest.Token);
+        if (!userResult.IsSuccess)
         {
-            return ServiceResult<AuthResponse>.Failure("User not found!",
-                                                       "",
-                                                       HttpStatusCode.NotFound);
+            return ServiceResult<AuthResponse>.Failure(userResult.ErrorTitle!, userResult.ErrorDetail ?? "", userResult.StatusCode);
         }
 
-        var email = principal.FindFirstValue(ClaimTypes.Email);
-
-        if (string.IsNullOrEmpty(email))
-            return ServiceResult<AuthResponse>.Failure("Invalid Token",
-                                                       "",
-                                                       HttpStatusCode.BadRequest);
-
-        var user = await _userManager.FindByEmailAsync(email);
-
-        if (user == null || IsTokenNotValid(user, tokenRequest.RefreshToken!))
+        var user = userResult.Value!;
+        if (IsRefreshTokenInvalid(user, tokenRequest.RefreshToken))
         {
-            return ServiceResult<AuthResponse>.Failure("Invalid Session",
-                                                       "Token not valid!",
-                                                       HttpStatusCode.BadRequest);
+            return ServiceResult<AuthResponse>.Failure("Invalid Session", "Token not valid!", HttpStatusCode.BadRequest);
         }
 
         var authResponse = await CreateAuthResponseAsync(user);
         return ServiceResult<AuthResponse>.Success(authResponse);
     }
 
-    public async Task<ServiceResult<AuthResponse>> RevokeRefreshTokenAsync(TokenRequest token)
+    public async Task<ServiceResult<AuthResponse>> RevokeRefreshTokenAsync(TokenRequest tokenRequest)
     {
-        ClaimsPrincipal? principal = _jwtService.GetPrincipalFromJwtToken(token.Token);
+        var userResult = await ResolveUserFromAccessTokenAsync(tokenRequest.Token);
 
-        if (principal == null)
+        if (userResult.IsSuccess)
         {
-            return ServiceResult<AuthResponse>.Failure("User not found!",
-                                                       "",
-                                                       HttpStatusCode.NotFound);
-        }
-
-        var email = principal.FindFirstValue(ClaimTypes.Email);
-
-        if (string.IsNullOrEmpty(email))
-        {
-            return ServiceResult<AuthResponse>.Failure("Invalid Token",
-                                                       "",
-                                                       HttpStatusCode.BadRequest);
-        }
-
-        var user = await _userManager.FindByEmailAsync(email);
-        if (user is not null)
-        {
+            var user = userResult.Value!;
             user.RefreshToken = null;
             user.RefreshTokenExpirationDateTime = DateTime.MinValue;
 
@@ -96,8 +85,40 @@ public class TokenService : ITokenService
         return ServiceResult<AuthResponse>.Success(new AuthResponse(), HttpStatusCode.NoContent);
     }
 
-    private static bool IsTokenNotValid(ApplicationUser? user, string refreshToken) =>
-        user == null
+    private async Task<ServiceResult<ApplicationUser>> ResolveUserFromAccessTokenAsync(string? accessToken)
+    {
+        if (string.IsNullOrWhiteSpace(accessToken))
+        {
+            return ServiceResult<ApplicationUser>.Failure("Missing token", "Access token was not provided.", HttpStatusCode.BadRequest);
+        }
+
+        ClaimsPrincipal principal;
+        try
+        {
+            principal = _jwtService.GetPrincipalFromExpiredToken(accessToken);
+        }
+        catch (SecurityTokenException)
+        {
+            return ServiceResult<ApplicationUser>.Failure("Invalid Token", "Token signature is invalid.", HttpStatusCode.BadRequest);
+        }
+
+        var email = principal.FindFirstValue(ClaimTypes.Email);
+        if (string.IsNullOrEmpty(email))
+        {
+            return ServiceResult<ApplicationUser>.Failure("Invalid Token", "Token does not contain an email claim.", HttpStatusCode.BadRequest);
+        }
+
+        var user = await _userManager.FindByEmailAsync(email);
+        if (user is null)
+        {
+            return ServiceResult<ApplicationUser>.Failure("User not found!", "", HttpStatusCode.NotFound);
+        }
+
+        return ServiceResult<ApplicationUser>.Success(user);
+    }
+
+    private static bool IsRefreshTokenInvalid(ApplicationUser user, string? refreshToken) =>
+        string.IsNullOrEmpty(refreshToken)
         || user.RefreshToken != refreshToken
         || user.RefreshTokenExpirationDateTime <= DateTime.UtcNow;
 }

@@ -2,9 +2,9 @@
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using ToDoApp.Domain.Entities;
 
-namespace ToDoApp.Infrastructure.Configurations.FluentConfigs;
+namespace ToDoApp.Infrastructure.Configurations;
 
-public class FluentToDoItemConfig : IEntityTypeConfiguration<TodoItem>
+public class ToDoItemConfig : IEntityTypeConfiguration<TodoItem>
 {
     public void Configure(EntityTypeBuilder<TodoItem> builder)
     {

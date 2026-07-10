@@ -7,12 +7,17 @@ namespace ToDoApp.Infrastructure.Repositories.EF;
 
 public class TagRepository : BaseRepository<Tag>, ITagRepository
 {
-    public TagRepository(ApplicationDbContext db) : base(db)
+    private readonly ICurrentUserRepository _currentUserRepository;
+
+    public TagRepository(ApplicationDbContext db, ICurrentUserRepository currentUserRepository) : base(db)
     {
+        _currentUserRepository = currentUserRepository;
     }
 
     public async Task<List<Tag>> GetActiveTags(CancellationToken cancellationToken)
     {
-        return await _db.Tags.Where(t => t.IsActive).ToListAsync(cancellationToken);
+        Guid userId = _currentUserRepository.GetUserId();
+
+        return await _db.Tags.Where(t => t.IsActive && t.UserId == userId).ToListAsync(cancellationToken);
     }
 }

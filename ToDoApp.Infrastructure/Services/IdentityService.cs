@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.WebUtilities;
 using System.Net;
@@ -12,6 +12,7 @@ using ToDoApp.Shared.AuthDTO.ResetPassword;
 using ToDoApp.Shared.AuthDTO.Token;
 using ToDoApp.Shared.Common;
 using ToDoApp.Application.Mappers;
+using ToDoApp.Infrastructure.Extensions;
 
 namespace ToDoApp.Infrastructure.Services;
 
@@ -19,27 +20,27 @@ public class IdentityService : IIdentityService
 {
     private readonly SignInManager<ApplicationUser> _signInManager;
     private readonly UserManager<ApplicationUser> _userManager;
-
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly ITokenService _tokenService;
+    private readonly IRefreshTokenCookieService _cookieService;
 
     public IdentityService(SignInManager<ApplicationUser> signInManager,
                            UserManager<ApplicationUser> userManager,
                            ITokenService tokenService,
-                           IHttpContextAccessor httpContext)
+                           IHttpContextAccessor httpContextAccessor,
+                           IRefreshTokenCookieService cookieService)
     {
         _signInManager = signInManager;
         _userManager = userManager;
         _tokenService = tokenService;
-        _httpContextAccessor = httpContext;
+        _httpContextAccessor = httpContextAccessor;
+        _cookieService = cookieService;
     }
 
     public async Task<ServiceResult<AuthResponse>> RegisterAsync(RegisterRequest registerRequest)
     {
-        var isMobile = IsRequestFromMobile(_httpContextAccessor.HttpContext);
-
-        var foundUser = await _userManager.FindByEmailAsync(registerRequest.Email);
-        if (foundUser != null)
+        var existingUser = await _userManager.FindByEmailAsync(registerRequest.Email);
+        if (existingUser is not null)
         {
             return ServiceResult<AuthResponse>.Failure("Mail taken!",
                                                        "User with that email already exists!",
@@ -48,31 +49,21 @@ public class IdentityService : IIdentityService
 
         ApplicationUser user = registerRequest.ToApplicationUser();
 
-        IdentityResult result = await _userManager.CreateAsync(user, registerRequest.Password);
-        if (!result.Succeeded)
+        IdentityResult createResult = await _userManager.CreateAsync(user, registerRequest.Password);
+        if (!createResult.Succeeded)
         {
             return ServiceResult<AuthResponse>.Failure("Registration error!",
-                                                       string.Join(", ", result.Errors),
+                                                       string.Join(", ", createResult.Errors),
                                                        HttpStatusCode.BadRequest);
         }
 
         await _signInManager.SignInAsync(user, isPersistent: true);
 
-        AuthResponse authResponse = await _tokenService.CreateAuthResponseAsync(user);
-
-        if (!isMobile)
-        {
-            AddRefreshTokenToCookie(_httpContextAccessor.HttpContext, authResponse.RefreshToken);
-        }
-
-        return ServiceResult<AuthResponse>.Success(authResponse);
+        return await IssueAuthResponseAsync(user);
     }
 
     public async Task<ServiceResult<AuthResponse>> LoginAsync(LoginRequest loginRequest)
     {
-        var isMobile = IsRequestFromMobile(_httpContextAccessor.HttpContext);
-
-
         var user = await _userManager.FindByEmailAsync(loginRequest.Email);
         if (user is null)
         {
@@ -81,18 +72,18 @@ public class IdentityService : IIdentityService
                                                        HttpStatusCode.BadRequest);
         }
 
-        SignInResult result = await _signInManager.CheckPasswordSignInAsync(user,
-                                                                            loginRequest.Password,
-                                                                            lockoutOnFailure: true);
+        SignInResult signInResult = await _signInManager.CheckPasswordSignInAsync(user,
+                                                                                  loginRequest.Password,
+                                                                                  lockoutOnFailure: true);
 
-        if (result.IsLockedOut)
+        if (signInResult.IsLockedOut)
         {
             return ServiceResult<AuthResponse>.Failure("Login error!",
                                                        "This account is temporarily locked out.",
                                                        HttpStatusCode.BadRequest);
         }
 
-        if (!result.Succeeded)
+        if (!signInResult.Succeeded)
         {
             return ServiceResult<AuthResponse>.Failure("Login error!",
                                                        "Invalid email or password parameters.",
@@ -101,54 +92,37 @@ public class IdentityService : IIdentityService
 
         await _userManager.ResetAccessFailedCountAsync(user);
 
-        AuthResponse authResponse = await _tokenService.CreateAuthResponseAsync(user);
-
-        if (!isMobile)
-        {
-            AddRefreshTokenToCookie(_httpContextAccessor.HttpContext, authResponse.RefreshToken);
-        }
-
-        return ServiceResult<AuthResponse>.Success(authResponse);
+        return await IssueAuthResponseAsync(user);
     }
 
     public async Task<ServiceResult<AuthResponse>> RefreshTokenAsync(TokenRequest tokenRequest)
     {
         var httpContext = _httpContextAccessor.HttpContext;
-        string? accessToken = tokenRequest.Token;
-        string? refreshToken = null;
 
-        // 1. Poskusi prebrati refreshToken iz piškotkov (Web)
-        if (httpContext != null)
+        string? cookieRefreshToken = null;
+        bool hasRefreshCookie = httpContext is not null && _cookieService.TryGet(out cookieRefreshToken);
+        var refreshToken = tokenRequest.RefreshToken;
+        if (hasRefreshCookie)
         {
-            httpContext.Request.Cookies.TryGetValue("refreshToken", out refreshToken);
+            refreshToken = cookieRefreshToken;
         }
 
-        // 2. Če piškotka ni, vzemi tistega iz telesa (MAUI fallback)
-        if (string.IsNullOrWhiteSpace(refreshToken))
+        if (string.IsNullOrWhiteSpace(tokenRequest.Token) || string.IsNullOrWhiteSpace(refreshToken))
         {
-            refreshToken = tokenRequest.RefreshToken;
+            return ServiceResult<AuthResponse>.Failure("Missing tokens",
+                                                       "Access token or refresh token was not provided.",
+                                                       HttpStatusCode.BadRequest);
         }
 
-        // 3. Validacija prisotnosti
-        if (string.IsNullOrWhiteSpace(accessToken) || string.IsNullOrWhiteSpace(refreshToken))
+        var refreshResult = await _tokenService.RefreshSessionAsync(new TokenRequest
         {
-            return ServiceResult<AuthResponse>.Failure("Missing tokens", "Access token or refresh token was not provided.");
-        }
+            Token = tokenRequest.Token,
+            RefreshToken = refreshToken
+        });
 
-        TokenRequest newTokenRequest = new() { Token = accessToken, RefreshToken = refreshToken };
-
-        // 4. Izvedba dejanske osvežitve (tvoja obstoječa jedrna logika)
-        var refreshResult = await _tokenService.RefreshSessionAsync(newTokenRequest);
-
-        if (!refreshResult.IsSuccess || refreshResult.Value is null)
+        if (refreshResult.IsSuccess && hasRefreshCookie)
         {
-            return refreshResult;
-        }
-
-        // 5. Če je zahtevek prišel preko piškotkov (Web), avtomatsko posodobi piškotek
-        if (httpContext != null && httpContext.Request.Cookies.ContainsKey("refreshToken"))
-        {
-            AddRefreshTokenToCookie(httpContext, refreshResult.Value.RefreshToken);
+            _cookieService.Append(refreshResult.Value!.RefreshToken, refreshResult.Value.RefreshTokenExpiration);
         }
 
         return refreshResult;
@@ -157,8 +131,7 @@ public class IdentityService : IIdentityService
     public async Task<ServiceResult<string>> ForgotPasswordAsync(ForgotPassRequest forgotPassRequest)
     {
         ApplicationUser? user = await _userManager.FindByEmailAsync(forgotPassRequest.Email!);
-
-        if (user == null)
+        if (user is null)
         {
             return ServiceResult<string>.Failure("Mail not found!",
                                                  "Mail was not found in the user database!",
@@ -167,43 +140,36 @@ public class IdentityService : IIdentityService
 
         string token = await _userManager.GeneratePasswordResetTokenAsync(user);
 
-        Dictionary<string, string> param = new()
+        Dictionary<string, string> queryParams = new()
         {
-            {"token", token},
-            {"email", forgotPassRequest.Email!},
+            ["token"] = token,
+            ["email"] = forgotPassRequest.Email!
         };
 
-        var callback = QueryHelpers.AddQueryString(forgotPassRequest.ClientUri!, param!);
-        return ServiceResult<string>.Success(callback);
+        var callbackUrl = QueryHelpers.AddQueryString(forgotPassRequest.ClientUri!, queryParams!);
+        return ServiceResult<string>.Success(callbackUrl);
     }
 
     public async Task<ServiceResult<string>> ResetPasswordAsync(ResetPassRequest resetPassRequest)
     {
-        ApplicationUser? currentUser;
+        ApplicationUser? user = !string.IsNullOrEmpty(resetPassRequest.Email)
+            ? await _userManager.FindByEmailAsync(resetPassRequest.Email)
+            : await _userManager.GetUserAsync(_httpContextAccessor.HttpContext?.User!);
 
-        if (!string.IsNullOrEmpty(resetPassRequest.Email))
-        {
-            currentUser = await _userManager.FindByEmailAsync(resetPassRequest.Email);
-        }
-        else
-        {
-            currentUser = await _userManager.GetUserAsync(_httpContextAccessor.HttpContext.User);
-        }
-
-        if (currentUser == null)
+        if (user is null)
         {
             return ServiceResult<string>.Failure("User not found!",
                                                  "User was not found!",
                                                  HttpStatusCode.BadRequest);
         }
 
-        IdentityResult? result = await _userManager.ResetPasswordAsync(currentUser,
+        IdentityResult result = await _userManager.ResetPasswordAsync(user,
                                                                        resetPassRequest.Token!,
                                                                        resetPassRequest.NewPassword!);
 
         if (!result.Succeeded)
         {
-            var resultErrors = string.Join('|', result.Errors.Select(x => x.Description));
+            var resultErrors = string.Join('|', result.Errors.Select(e => e.Description));
 
             return ServiceResult<string>.Failure("Error reseting password",
                                                  resultErrors,
@@ -213,53 +179,45 @@ public class IdentityService : IIdentityService
         return ServiceResult<string>.Success("Your password was successfuly changed!", HttpStatusCode.Accepted);
     }
 
-    public async Task Logout(TokenRequest tokenRequest)
+    public async Task<ServiceResult<object>> LogoutAsync(TokenRequest tokenRequest)
     {
-        var isMobile = IsRequestFromMobile(_httpContextAccessor.HttpContext);
-
-        if (isMobile)
+        var httpContext = _httpContextAccessor.HttpContext;
+        if (httpContext is null)
         {
-            // MAUI — refreshToken pride v body (TokenRequest)
-            if (!string.IsNullOrWhiteSpace(tokenRequest.RefreshToken))
-            {
-                await _tokenService.RevokeRefreshTokenAsync(tokenRequest);
-
-                await _signInManager.SignOutAsync();
-            }
+            return ServiceResult<object>.Failure("Logout error!", "No active HTTP context.", HttpStatusCode.BadRequest);
         }
-        else
+
+        var isMobile = httpContext.IsMobileClient();
+
+        if (!isMobile && _cookieService.TryGet(out var cookieRefreshToken))
         {
-            // WASM — refreshToken pride iz cookieja
-            if (_httpContextAccessor.HttpContext.Request.Cookies.TryGetValue("refreshToken", out var refreshToken))
-            {
-                tokenRequest.RefreshToken = refreshToken;
-                await _tokenService.RevokeRefreshTokenAsync(tokenRequest);
-
-                await _signInManager.SignOutAsync();
-            }
-
-            _httpContextAccessor.HttpContext.Response.Cookies.Delete("refreshToken", new CookieOptions
-            {
-                Path = "/api/v1/auth"
-            });
+            tokenRequest.RefreshToken = cookieRefreshToken;
         }
+
+        if (!string.IsNullOrWhiteSpace(tokenRequest.RefreshToken))
+        {
+            await _tokenService.RevokeRefreshTokenAsync(tokenRequest);
+            await _signInManager.SignOutAsync();
+        }
+
+        if (!isMobile)
+        {
+            _cookieService.Delete();
+        }
+
+        return ServiceResult<object>.Success(new object(), HttpStatusCode.NoContent);
     }
 
-    private static void AddRefreshTokenToCookie(HttpContext httpContext, string refreshToken)
+    private async Task<ServiceResult<AuthResponse>> IssueAuthResponseAsync(ApplicationUser user)
     {
-        httpContext.Response.Cookies.Append("refreshToken", refreshToken, new CookieOptions
-        {
-            HttpOnly = true,
-            Secure = true,
-            SameSite = SameSiteMode.Strict,
-            Path = "/api/v1/auth",
-            Expires = DateTimeOffset.UtcNow.AddDays(30)
-        });
-    }
+        var authResponse = await _tokenService.CreateAuthResponseAsync(user);
 
-    private bool IsRequestFromMobile(HttpContext httpContext)
-    {
-        var clientType = httpContext.Request.Headers["X-Client-Type"].ToString();
-        return clientType == "mobile";
+        var httpContext = _httpContextAccessor.HttpContext;
+        if (httpContext is not null && !httpContext.IsMobileClient())
+        {
+            _cookieService.Append(authResponse.RefreshToken, authResponse.RefreshTokenExpiration);
+        }
+
+        return ServiceResult<AuthResponse>.Success(authResponse);
     }
 }

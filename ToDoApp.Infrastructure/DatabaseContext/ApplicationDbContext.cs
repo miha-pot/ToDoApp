@@ -6,7 +6,6 @@ using ToDoApp.Domain.Entities;
 using ToDoApp.Domain.EntityContract;
 using ToDoApp.Domain.Identity;
 using ToDoApp.Infrastructure.Configurations;
-using ToDoApp.Infrastructure.Configurations.FluentConfigs;
 
 namespace ToDoApp.Infrastructure.DatabaseContext;
 
@@ -28,10 +27,10 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
     {
         base.OnModelCreating(modelBuilder);
 
-        modelBuilder.ApplyConfiguration(new FluentTagConfig());
-        modelBuilder.ApplyConfiguration(new FluentToDoItemConfig());
+        modelBuilder.ApplyConfiguration(new TagConfig());
+        modelBuilder.ApplyConfiguration(new ToDoItemConfig());
 
-        modelBuilder.ApplyConfiguration(new TodoItemTagConfiguration());
+        modelBuilder.ApplyConfiguration(new TodoItemTagConfig());
     }
 
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)

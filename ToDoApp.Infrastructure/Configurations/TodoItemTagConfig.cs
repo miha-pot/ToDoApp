@@ -4,7 +4,7 @@ using ToDoApp.Domain.Entities;
 
 namespace ToDoApp.Infrastructure.Configurations;
 
-public class TodoItemTagConfiguration : IEntityTypeConfiguration<TodoItemTag>
+public class TodoItemTagConfig : IEntityTypeConfiguration<TodoItemTag>
 {
     public void Configure(EntityTypeBuilder<TodoItemTag> builder)
     {
