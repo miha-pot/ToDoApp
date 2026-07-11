@@ -116,7 +116,7 @@ public class TagService : ITagService
         {
             DatabaseResult.Success => ServiceResult<TagResponse>.Success(matchedTag.ToResponse()),
             DatabaseResult.NoChanges => ServiceResult<TagResponse>.Warning(matchedTag.ToResponse(), "No changes were made!", "No changes were made to entity!"),
-            DatabaseResult.Failed => ServiceResult<TagResponse>.Failure("Academic year was not updated!", "Failure while updating academic year!"),
+            DatabaseResult.Failed => ServiceResult<TagResponse>.Failure("To do item was not updated!", "Failure while updating academic year!"),
             _ => ServiceResult<TagResponse>.Failure("Unexpected error!", "An unexpected database state occurred. Please contact support.")
         };
     }

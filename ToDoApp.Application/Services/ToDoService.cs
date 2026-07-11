@@ -191,7 +191,7 @@ public class ToDoService : IToDoService
 
         updateRequest.UpdateEntity(matchedToDoItem);
 
-        DatabaseResult result = await _repository.UpdateAsync(matchedToDoItem, cancellationToken);
+        DatabaseResult result = await _repository.UpdateAsync(matchedToDoItem, updateRequest.TagIds, cancellationToken);
 
         return result switch
         {

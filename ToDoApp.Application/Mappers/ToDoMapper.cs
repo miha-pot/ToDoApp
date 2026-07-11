@@ -28,17 +28,6 @@ public static class ToDoMapper
         existingToDo.DueDate = request.DueDate?.ToUniversalTime();
         existingToDo.IsCompleted = request.IsCompleted;
         existingToDo.Level = (int)request.Level;
-
-        existingToDo.TodoItemTags.Clear();
-
-        foreach (Guid tagId in request.TagIds)
-        {
-            existingToDo.TodoItemTags.Add(new()
-            {
-                TagId = tagId,
-                TodoItemId = existingToDo.Id
-            });
-        }
     }
 
     public static ToDoResponse ToResponse(this TodoItem toDoItem)
