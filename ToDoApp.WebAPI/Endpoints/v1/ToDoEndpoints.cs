@@ -50,9 +50,9 @@ public static class ToDoEndpoints
                                                IToDoService toDoService,
                                                CancellationToken cancellationToken)
     {
-        PagedResult<ToDoResponse> toDoItems = await toDoService.GetItemsWithQuery(queryRequest, cancellationToken);
+        ServiceResult<PagedResult<ToDoResponse>> result = await toDoService.GetItemsWithQuery(queryRequest, cancellationToken);
 
-        return Results.Ok(toDoItems);
+        return result.ToHttpResult();
     }
 
     public static async Task<IResult> Create(ToDoAddRequest? addRequest,
@@ -104,8 +104,8 @@ public static class ToDoEndpoints
                                                   IToDoService toDoService,
                                                   CancellationToken cancellationToken)
     {
-        List<ToDoResponse> toDoItems = await toDoService.GetSubTasks(parentId, cancellationToken);
+        ServiceResult<List<ToDoResponse>> result = await toDoService.GetSubTasks(parentId, cancellationToken);
 
-        return Results.Ok(toDoItems);
+        return result.ToHttpResult();
     }
 }

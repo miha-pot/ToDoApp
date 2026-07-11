@@ -94,6 +94,15 @@ public partial class Edit
 
         if (result.IsSuccess)
         {
+            if (result.IsWarning)
+            {
+                Snackbar.Add("Podatki niso bili spremenjeni!", MudBlazor.Severity.Warning);
+            }
+            else
+            {
+                Snackbar.Add("Podatki so bili uspešno spremenjeni!", MudBlazor.Severity.Success);
+            }
+
             NavigationManager.NavigateTo("/tag");
         }
 

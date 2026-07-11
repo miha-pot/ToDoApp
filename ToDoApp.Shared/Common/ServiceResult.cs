@@ -9,6 +9,10 @@ public class ServiceResult<T>
     public string? ErrorTitle { get; set; }
     public string? ErrorDetail { get; set; }
 
+    public bool IsWarning { get; set; }
+    public string? WarningTitle { get; set; }
+    public string? WarningDetail { get; set; }
+
     public HttpStatusCode StatusCode { get; set; }
 
     public static ServiceResult<T> Success(T value, HttpStatusCode statusCode = HttpStatusCode.Created) => new()
@@ -17,6 +21,19 @@ public class ServiceResult<T>
         Value = value,
         StatusCode = statusCode
     };
+
+    public static ServiceResult<T> Warning(T value,
+                                           string title,
+                                           string detail,
+                                           HttpStatusCode statusCode = HttpStatusCode.OK) => new()
+                                           {
+                                               IsSuccess = true,
+                                               IsWarning = true,
+                                               Value = value,
+                                               WarningTitle = title,
+                                               WarningDetail = detail,
+                                               StatusCode = statusCode
+                                           };
 
     public static ServiceResult<T> Failure(string title,
                                            string detail,

@@ -6,6 +6,11 @@ public class ApiResponse<T>
     public T? Value { get; set; }
     public string? ErrorTitle { get; set; }
     public string? ErrorDetail { get; set; }
+
+    public bool IsWarning { get; set; }
+    public string? WarningTitle { get; set; }
+    public string? WarningDetail { get; set; }
+
     public int StatusCode { get; set; }
     public Dictionary<string, string[]>? Errors { get; init; }
     public bool IsValidationError =>

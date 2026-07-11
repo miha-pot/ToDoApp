@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using ToDoApp.Domain.Common;
 using ToDoApp.Domain.RepositoryContracts;
 using ToDoApp.Infrastructure.DatabaseContext;
 
@@ -26,27 +27,46 @@ public abstract class BaseRepository<T> : IRepository<T>
         return await _dbSet.FindAsync([id], cancellationToken);
     }
 
-    public virtual async Task<bool> AddAsync(T entity, CancellationToken cancellationToken)
+    public virtual async Task<DatabaseResult> AddAsync(T entity, CancellationToken cancellationToken)
     {
         await _dbSet.AddAsync(entity, cancellationToken);
-        return await _db.SaveChangesAsync(cancellationToken) > 0;
+
+        bool isSaved = await _db.SaveChangesAsync(cancellationToken) > 0;
+
+        return isSaved ? DatabaseResult.Success : DatabaseResult.Failed;
     }
 
-    public virtual async Task<bool> UpdateAsync(T entity, CancellationToken cancellationToken)
+    public virtual async Task<DatabaseResult> UpdateAsync(T entity, CancellationToken cancellationToken)
     {
-        _dbSet.Update(entity);
-        return await _db.SaveChangesAsync(cancellationToken) > 0;
-    }
+        var entry = _db.Entry(entity);
 
-    public virtual async Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken)
-    {
-        var entity = await _dbSet.FindAsync([id], cancellationToken);
-        if (entity != null)
+        if (entry.State == EntityState.Detached)
         {
-            _dbSet.Remove(entity);
-            return await _db.SaveChangesAsync(cancellationToken) > 0;
+            _dbSet.Update(entity);
         }
 
-        return false;
+        if (entry.State == EntityState.Unchanged)
+        {
+            return DatabaseResult.NoChanges;
+        }
+
+        bool isSaved = await _db.SaveChangesAsync(cancellationToken) > 0;
+
+        return isSaved ? DatabaseResult.Success : DatabaseResult.Failed;
+    }
+
+    public virtual async Task<DatabaseResult> DeleteAsync(Guid id, CancellationToken cancellationToken)
+    {
+        var entity = await _dbSet.FindAsync([id], cancellationToken);
+        if (entity is null)
+        {
+            return DatabaseResult.NotFound;
+        }
+
+        _dbSet.Remove(entity);
+
+        bool isDeleted = await _db.SaveChangesAsync(cancellationToken) > 0;
+
+        return isDeleted ? DatabaseResult.Success : DatabaseResult.Failed;
     }
 }

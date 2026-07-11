@@ -1,11 +1,14 @@
 ﻿using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.WebAssembly.Http;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using ToDoApp.Shared.AuthDTO;
 using ToDoApp.Shared.AuthDTO.Token;
+using ToDoApp.Shared.Common;
 using ToDoApp.SharedUI.ServiceContracts;
-using Microsoft.AspNetCore.Components.WebAssembly.Http;
 
 namespace ToDoApp.Web.AuthHandlers;
 
@@ -15,6 +18,13 @@ public class WebAuthorizationHandler : DelegatingHandler
     private readonly NavigationManager _navigationManager;
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IAuthState _authState;
+
+    private readonly JsonSerializerOptions _options = new()
+    {
+        PropertyNameCaseInsensitive = true,
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        ReferenceHandler = ReferenceHandler.IgnoreCycles
+    };
 
     public WebAuthorizationHandler(IDataStorage dataStorage,
                                        NavigationManager navigationManager,
@@ -35,9 +45,9 @@ public class WebAuthorizationHandler : DelegatingHandler
         if (!string.IsNullOrWhiteSpace(token))
         {
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
-            request.Headers.Add("X-Client-Type", "web");
         }
 
+        request.Headers.TryAddWithoutValidation("X-Client-Type", "web");
         request.SetBrowserRequestCredentials(BrowserRequestCredentials.Include);
 
         var response = await base.SendAsync(request, cancellationToken);
@@ -68,17 +78,22 @@ public class WebAuthorizationHandler : DelegatingHandler
                 };
 
                 refreshRequest.SetBrowserRequestCredentials(BrowserRequestCredentials.Include);
+                refreshRequest.Headers.TryAddWithoutValidation("X-Client-Type", "web");
 
                 var refreshResponse = await refreshClient.SendAsync(refreshRequest, cancellationToken);
 
                 if (refreshResponse.IsSuccessStatusCode)
                 {
-                    AuthResponse? apiResult = await refreshResponse.Content.ReadFromJsonAsync<AuthResponse>(cancellationToken);
-                    if (apiResult is not null)
-                    {
-                        await _dataStorage.SetItemAsync("authToken", apiResult.Token);
+                    var apiResult = await refreshResponse.Content.ReadFromJsonAsync<ApiResponse<AuthResponse>>(_options, cancellationToken);
 
-                        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiResult.Token);
+                    if (apiResult is not null && apiResult.IsSuccess && apiResult.Value is not null)
+                    {
+                        var newAuthToken = apiResult.Value.Token;
+
+                        await _dataStorage.SetItemAsync("authToken", newAuthToken);
+
+                        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", newAuthToken);
+
                         response.Dispose();
 
                         return await base.SendAsync(request, cancellationToken);

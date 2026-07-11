@@ -3,6 +3,7 @@ using System.Net;
 using ToDoApp.Application.Mappers;
 using ToDoApp.Application.RepositoryContracts;
 using ToDoApp.Application.ServiceContracts;
+using ToDoApp.Domain.Common;
 using ToDoApp.Domain.Entities;
 using ToDoApp.Domain.RepositoryContracts;
 using ToDoApp.Shared.Common;
@@ -48,13 +49,15 @@ public class ToDoService : IToDoService
         }
 
         toDoItem.IsCompleted = !toDoItem.IsCompleted;
-        bool result = await _repository.UpdateAsync(toDoItem, cancellationToken);
+        DatabaseResult result = await _repository.UpdateAsync(toDoItem, cancellationToken);
 
-        return result ?
-            ServiceResult<bool>.Success(toDoItem.IsCompleted) :
-            ServiceResult<bool>.Failure("Error while updating ToDo item!",
-                                        "Check application logs!",
-                                        HttpStatusCode.BadRequest);
+        return result switch
+        {
+            DatabaseResult.Success => ServiceResult<bool>.Success(true),
+            DatabaseResult.NoChanges => ServiceResult<bool>.Warning(false, "No changes were made!", "No changes were made to entity!"),
+            DatabaseResult.Failed => ServiceResult<bool>.Failure("Academic year was not updated!", "Failure while updating academic year!"),
+            _ => ServiceResult<bool>.Failure("Unexpected error!", "An unexpected database state occurred. Please contact support.")
+        };
     }
 
     public async Task<ServiceResult<ToDoResponse>> CreateItem(ToDoAddRequest? addRequest, CancellationToken cancellationToken)
@@ -75,13 +78,14 @@ public class ToDoService : IToDoService
             }).ToList();
         }
 
-        bool result = await _repository.AddAsync(toDoItem, cancellationToken);
+        DatabaseResult result = await _repository.AddAsync(toDoItem, cancellationToken);
 
-        return result ?
-            ServiceResult<ToDoResponse>.Success(toDoItem.ToResponse()) :
-            ServiceResult<ToDoResponse>.Failure("Error while inserting to database!",
-                                                "Check application logs!",
-                                                HttpStatusCode.BadRequest);
+        return result switch
+        {
+            DatabaseResult.Success => ServiceResult<ToDoResponse>.Success(toDoItem.ToResponse()),
+            DatabaseResult.Failed => ServiceResult<ToDoResponse>.Failure("Item was not created!", "Failure while creating new item!"),
+            _ => ServiceResult<ToDoResponse>.Failure("Unexpected error!", "An unexpected database state occurred. Please contact support.")
+        };
     }
 
     public async Task<ServiceResult<string>> DeleteItem(Guid? itemId, CancellationToken cancellationToken)
@@ -102,13 +106,14 @@ public class ToDoService : IToDoService
                                                  HttpStatusCode.NotFound);
         }
 
-        bool result = await _repository.DeleteAsync(itemId.Value, cancellationToken);
+        DatabaseResult result = await _repository.DeleteAsync(itemId.Value, cancellationToken);
 
-        return result ?
-            ServiceResult<string>.Success("ToDo item with provided id was successfuly deleted") :
-            ServiceResult<string>.Failure("Error while inserting to database!",
-                                          "Check backend logs!",
-                                          HttpStatusCode.BadRequest);
+        return result switch
+        {
+            DatabaseResult.Success => ServiceResult<string>.Success("Item was deleted!"),
+            DatabaseResult.Failed => ServiceResult<string>.Failure("Item was not deleted!", "Failure while deleting item!"),
+            _ => ServiceResult<string>.Failure("Unexpected error!", "An unexpected database state occurred. Please contact support.")
+        };
     }
 
     public async Task<ServiceResult<ToDoResponse?>> GetItemById(Guid? itemId, CancellationToken cancellationToken)
@@ -132,14 +137,14 @@ public class ToDoService : IToDoService
         return ServiceResult<ToDoResponse?>.Success(toDoItem.ToResponseWithTags());
     }
 
-    public async Task<PagedResult<ToDoResponse>> GetItemsWithQuery(QueryRequest queryRequest, CancellationToken cancellationToken)
+    public async Task<ServiceResult<PagedResult<ToDoResponse>>> GetItemsWithQuery(QueryRequest queryRequest, CancellationToken cancellationToken)
     {
         IQueryable<TodoItem> query = _queryRepository.BuildBaseQuery<TodoItem>(queryRequest);
 
         query = query.Include(t => t.TodoItemTags)
                      .ThenInclude(tt => tt.Tag);
 
-        return await _queryRepository.ExecuteQueryAsync<TodoItem, ToDoResponse>(query, queryRequest, todo => new ToDoResponse()
+        var result = await _queryRepository.ExecuteQueryAsync(query, queryRequest, todo => new ToDoResponse()
         {
             Id = todo.Id,
             Title = todo.Title,
@@ -158,13 +163,19 @@ public class ToDoService : IToDoService
                 BgColorHex = tt.Tag.BgColorHex
             }).ToList()
         }, cancellationToken);
+
+        return result is not null ?
+            ServiceResult<PagedResult<ToDoResponse>>.Success(result) :
+            ServiceResult<PagedResult<ToDoResponse>>.Failure("Query result is null!", "Error while receiving paged response from server!");
     }
 
-    public async Task<List<ToDoResponse>> GetSubTasks(Guid parentId, CancellationToken cancellationToken)
+    public async Task<ServiceResult<List<ToDoResponse>>> GetSubTasks(Guid parentId, CancellationToken cancellationToken)
     {
         List<TodoItem> subTasks = await _repository.GetSubTasks(parentId, cancellationToken);
 
-        return subTasks.Select(x => x.ToResponseWithTags()).ToList();
+        List<ToDoResponse> response = subTasks.Select(x => x.ToResponseWithTags()).ToList();
+
+        return ServiceResult<List<ToDoResponse>>.Success(response);
     }
 
     public async Task<ServiceResult<ToDoResponse>> UpdateItem(ToDoUpdateRequest? updateRequest, CancellationToken cancellationToken)
@@ -180,12 +191,14 @@ public class ToDoService : IToDoService
 
         updateRequest.UpdateEntity(matchedToDoItem);
 
-        bool result = await _repository.UpdateAsync(matchedToDoItem, cancellationToken);
+        DatabaseResult result = await _repository.UpdateAsync(matchedToDoItem, cancellationToken);
 
-        return result ?
-            ServiceResult<ToDoResponse>.Success(matchedToDoItem.ToResponse()) :
-            ServiceResult<ToDoResponse>.Failure("Error while updating item!",
-                                                "Check backend logs!",
-                                                HttpStatusCode.BadRequest);
+        return result switch
+        {
+            DatabaseResult.Success => ServiceResult<ToDoResponse>.Success(matchedToDoItem.ToResponse()),
+            DatabaseResult.NoChanges => ServiceResult<ToDoResponse>.Warning(matchedToDoItem.ToResponse(), "No changes were made!", "No changes were made to entity!"),
+            DatabaseResult.Failed => ServiceResult<ToDoResponse>.Failure("Academic year was not updated!", "Failure while updating academic year!"),
+            _ => ServiceResult<ToDoResponse>.Failure("Unexpected error!", "An unexpected database state occurred. Please contact support.")
+        };
     }
 }

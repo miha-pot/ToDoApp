@@ -7,13 +7,13 @@ public static class ServiceResultExtensions
 {
     public static IResult ToHttpResult<T>(this ServiceResult<T> result)
     {
-        if (result.IsSuccess)
+        if (!result.IsSuccess)
         {
-            return Results.Ok(result.Value);
+            return Results.Problem(title: result.ErrorTitle ?? "Operation Failed",
+                             detail: result.ErrorDetail,
+                             statusCode: (int)result.StatusCode);
         }
 
-        return Results.Problem(title: result.ErrorTitle ?? "Operation Failed",
-                               detail: result.ErrorDetail,
-                               statusCode: (int)result.StatusCode);
+        return Results.Json(result, statusCode: StatusCodes.Status200OK);
     }
 }

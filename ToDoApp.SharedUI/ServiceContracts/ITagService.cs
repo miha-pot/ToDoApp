@@ -12,5 +12,5 @@ public interface ITagService
     Task<ApiResponse<string>> DeleteAsync(Guid id, CancellationToken token);
     Task<ApiResponse<PagedResult<TagResponse>>> GetItemsWithQuery(QueryRequest queryRequest, CancellationToken token);
     Task<ApiResponse<TagResponse>> UpdateAsync(TagUpdateRequest updateRequest, CancellationToken token);
-    Task<List<TagResponse>> GetActiveTags(CancellationToken token);
+    Task<ApiResponse<List<TagResponse>>> GetActiveTags(CancellationToken token);
 }

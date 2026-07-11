@@ -47,9 +47,9 @@ public static class TagEndpoints
                                                ITagService tagService,
                                                CancellationToken cancellationToken)
     {
-        PagedResult<TagResponse> toDoItems = await tagService.GetItemsWithQuery(queryRequest, cancellationToken);
+        ServiceResult<PagedResult<TagResponse>> toDoItems = await tagService.GetItemsWithQuery(queryRequest, cancellationToken);
 
-        return Results.Ok(toDoItems);
+        return toDoItems.ToHttpResult();
     }
 
     public static async Task<IResult> Create(TagAddRequest? addRequest,
@@ -91,8 +91,8 @@ public static class TagEndpoints
     public static async Task<IResult> GetActiveTags(ITagService tagService,
                                                     CancellationToken cancellationToken)
     {
-        List<TagResponse> result = await tagService.GetActiveTags(cancellationToken);
+        ServiceResult<List<TagResponse>> result = await tagService.GetActiveTags(cancellationToken);
 
-        return Results.Ok(result);
+        return result.ToHttpResult();
     }
 }

@@ -40,7 +40,17 @@ public partial class Create : IDisposable
     protected override async Task OnInitializedAsync()
     {
         _model.ParentToDoId = ParentToDoId;
-        _tagList = await TagService.GetActiveTags(_cts.Token);
+
+        var result = await TagService.GetActiveTags(_cts.Token);
+
+        if (result.IsSuccess && result.Value is not null)
+        {
+            _tagList = result.Value;
+
+            return;
+        }
+
+        Snackbar.Add($"{result.ErrorTitle}: {result.ErrorDetail}", MudBlazor.Severity.Error);
     }
 
     private static string GetMultiSelectionText(IReadOnlyList<string> selectedValues)

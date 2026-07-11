@@ -74,7 +74,7 @@ public partial class Index : IDisposable
 
         var response = await ToDoService.GetItemsWithQuery(queryRequest, cancellationToken);
 
-        if (response.IsSuccess && response.Value != null)
+        if (response.IsSuccess && response.Value is not null)
         {
             return new TableData<ToDoResponse>()
             {
@@ -86,7 +86,7 @@ public partial class Index : IDisposable
         {
             SnackBar.Add($"Napaka pri osveževanju baze: {response.ErrorDetail}", MudBlazor.Severity.Error);
 
-            return new TableData<ToDoResponse>() { TotalItems = 0, Items = Array.Empty<ToDoResponse>() };
+            return new TableData<ToDoResponse>() { TotalItems = 0, Items = [] };
         }
     }
 

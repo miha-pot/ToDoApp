@@ -6,10 +6,11 @@ using ToDoApp.Shared.AuthDTO.Token;
 using ToDoApp.Shared.Common;
 using ToDoApp.SharedUI.Providers;
 using ToDoApp.SharedUI.ServiceContracts;
+using ToDoApp.SharedUI.Services.Common;
 
 namespace ToDoApp.SharedUI.Services;
 
-public class AuthService : IAuthService
+public class AuthService :  IAuthService
 {
     private readonly ApiService _apiService;
     private readonly IDataStorage _localStorage;

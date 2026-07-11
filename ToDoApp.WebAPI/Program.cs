@@ -24,7 +24,7 @@ hc.AddCheck(name: "self-live",
             tags: ["live"]);
 
 hc.AddNpgSql(
-    connectionString: builder.Configuration.GetConnectionString("DbConnection")!,
+    connectionString: builder.Configuration.GetConnectionString("PostgresConnection")!,
     name: "postgresql-db",
     tags: ["ready"],
     timeout: TimeSpan.FromSeconds(3)

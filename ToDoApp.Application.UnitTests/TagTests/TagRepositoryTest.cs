@@ -2,10 +2,10 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using NSubstitute;
+using ToDoApp.Domain.Common;
 using ToDoApp.Domain.Entities;
 using ToDoApp.Domain.RepositoryContracts;
 using ToDoApp.Infrastructure.DatabaseContext;
-using ToDoApp.Infrastructure.Repositories;
 using ToDoApp.Infrastructure.Repositories.EF;
 
 namespace ToDoApp.Application.UnitTests.TagTests;
@@ -18,7 +18,7 @@ public class TagRepositoryTests
     public TagRepositoryTests()
     {
         _mockHttpContextAccessor = Substitute.For<HttpContextAccessor>();
-        _mockCurrentUserRepository = Substitute.For<CurrentUserRepository>();
+        _mockCurrentUserRepository = Substitute.For<ICurrentUserRepository>();
     }
 
     private ApplicationDbContext CreateInMemoryDbContext()
@@ -46,7 +46,7 @@ public class TagRepositoryTests
 
         var result = await repository.AddAsync(tag, CancellationToken.None);
 
-        result.Should().BeTrue();
+        result.Should().Be(DatabaseResult.Success);
 
         var dbItem = await context.Tags.FindAsync(tagId);
         dbItem.Should().NotBeNull();
@@ -101,7 +101,7 @@ public class TagRepositoryTests
 
         var result = await repository.UpdateAsync(tagToUpdate, CancellationToken.None);
 
-        result.Should().BeTrue();
+        result.Should().Be(DatabaseResult.Success);
 
         var updatedDbItem = await context.Tags.FindAsync(tagId);
         updatedDbItem.Should().NotBeNull();
@@ -122,7 +122,7 @@ public class TagRepositoryTests
 
         var result = await repository.DeleteAsync(tagId, CancellationToken.None);
 
-        result.Should().BeTrue();
+        result.Should().Be(DatabaseResult.Success);
 
         var deletedDbItem = await context.Tags.FindAsync(tagId);
         deletedDbItem.Should().BeNull();

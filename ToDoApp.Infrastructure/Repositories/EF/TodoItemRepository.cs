@@ -16,7 +16,7 @@ public class TodoItemRepository : BaseRepository<TodoItem>, ITodoItemRepository
         return await _dbSet.Include(x => x.TodoItemTags).ThenInclude(x => x.Tag).FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
     }
 
-    public async Task<List<TodoItem>>   GetSubTasks(Guid parentId, CancellationToken cancellationToken)
+    public async Task<List<TodoItem>> GetSubTasks(Guid parentId, CancellationToken cancellationToken)
     {
         return await _dbSet.Where(x => x.ParentTodoId == parentId).Include(x => x.TodoItemTags).ThenInclude(x => x.Tag).ToListAsync(cancellationToken);
     }

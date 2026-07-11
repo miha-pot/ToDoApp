@@ -2,6 +2,7 @@
 using ToDoApp.Application.Mappers;
 using ToDoApp.Application.RepositoryContracts;
 using ToDoApp.Application.ServiceContracts;
+using ToDoApp.Domain.Common;
 using ToDoApp.Domain.Entities;
 using ToDoApp.Domain.RepositoryContracts;
 using ToDoApp.Shared.Common;
@@ -29,13 +30,14 @@ public class TagService : ITagService
         Tag tag = addRequest!.ToEntity();
         tag.UserId = _currentUserRepository.GetUserId();
 
-        bool result = await _repository.AddAsync(tag, cancellationToken);
+        DatabaseResult result = await _repository.AddAsync(tag, cancellationToken);
 
-        return result ?
-            ServiceResult<TagResponse>.Success(tag.ToResponse()) :
-            ServiceResult<TagResponse>.Failure("Error while inserting to database!",
-                                               "Check application logs!",
-                                               HttpStatusCode.BadRequest);
+        return result switch
+        {
+            DatabaseResult.Success => ServiceResult<TagResponse>.Success(tag.ToResponse()),
+            DatabaseResult.Failed => ServiceResult<TagResponse>.Failure("Item was not created!", "Failure while creating new item!"),
+            _ => ServiceResult<TagResponse>.Failure("Unexpected error!", "An unexpected database state occurred. Please contact support.")
+        };
     }
 
     public async Task<ServiceResult<string>> DeleteItem(Guid? itemId, CancellationToken cancellationToken)
@@ -56,13 +58,14 @@ public class TagService : ITagService
                                                  HttpStatusCode.BadRequest);
         }
 
-        bool result = await _repository.DeleteAsync(itemId.Value, cancellationToken);
+        DatabaseResult result = await _repository.DeleteAsync(itemId.Value, cancellationToken);
 
-        return result ?
-            ServiceResult<string>.Success("Tag with provided id was successfuly deleted") :
-            ServiceResult<string>.Failure("Error while inserting to database!",
-                                          "Check backend logs!",
-                                          HttpStatusCode.BadRequest);
+        return result switch
+        {
+            DatabaseResult.Success => ServiceResult<string>.Success("Item was deleted!"),
+            DatabaseResult.Failed => ServiceResult<string>.Failure("Item was not deleted!", "Failure while deleting item!"),
+            _ => ServiceResult<string>.Failure("Unexpected error!", "An unexpected database state occurred. Please contact support.")
+        };
     }
 
     public async Task<ServiceResult<TagResponse?>> GetItemById(Guid? itemId, CancellationToken cancellationToken)
@@ -107,24 +110,32 @@ public class TagService : ITagService
 
         updateRequest.UpdateEntity(matchedTag);
 
-        bool result = await _repository.UpdateAsync(matchedTag, cancellationToken);
+        DatabaseResult result = await _repository.UpdateAsync(matchedTag, cancellationToken);
 
-        return result ?
-            ServiceResult<TagResponse>.Success(matchedTag.ToResponse()) :
-            ServiceResult<TagResponse>.Failure("Error while updating item!",
-                                               "Check backend logs!",
-                                               HttpStatusCode.BadRequest);
+        return result switch
+        {
+            DatabaseResult.Success => ServiceResult<TagResponse>.Success(matchedTag.ToResponse()),
+            DatabaseResult.NoChanges => ServiceResult<TagResponse>.Warning(matchedTag.ToResponse(), "No changes were made!", "No changes were made to entity!"),
+            DatabaseResult.Failed => ServiceResult<TagResponse>.Failure("Academic year was not updated!", "Failure while updating academic year!"),
+            _ => ServiceResult<TagResponse>.Failure("Unexpected error!", "An unexpected database state occurred. Please contact support.")
+        };
     }
 
-    public async Task<PagedResult<TagResponse>> GetItemsWithQuery(QueryRequest queryRequest, CancellationToken cancellationToken)
+    public async Task<ServiceResult<PagedResult<TagResponse>>> GetItemsWithQuery(QueryRequest queryRequest, CancellationToken cancellationToken)
     {
-        return await _queryRepository.GetListByQueryAsync<Tag, TagResponse>(queryRequest, x => x.ToResponse(), cancellationToken);
+        var result = await _queryRepository.GetListByQueryAsync<Tag, TagResponse>(queryRequest, x => x.ToResponse(), cancellationToken);
+
+        return result is not null ?
+            ServiceResult<PagedResult<TagResponse>>.Success(result) :
+            ServiceResult<PagedResult<TagResponse>>.Failure("Query result is null!", "Error while receiving paged response from server!");
     }
 
-    public async Task<List<TagResponse>> GetActiveTags(CancellationToken cancellationToken)
+    public async Task<ServiceResult<List<TagResponse>>> GetActiveTags(CancellationToken cancellationToken)
     {
-        var tags = await _repository.GetActiveTags(cancellationToken);
+        var result = await _repository.GetActiveTags(cancellationToken);
 
-        return tags.Select(x => x.ToResponse()).ToList();
+        return result is not null ?
+            ServiceResult<List<TagResponse>>.Success(result.Select(x => x.ToResponse()).ToList()) :
+            ServiceResult<List<TagResponse>>.Failure("List is null!", "Error while receiving list of items from server!");
     }
 }

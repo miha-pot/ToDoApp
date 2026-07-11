@@ -12,6 +12,7 @@ public class CurrentUserRepository : ICurrentUserRepository
     {
         _httpContextAccessor = httpContextAccessor;
     }
+
     public Guid GetUserId()
     {
         var userIdClaim = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;

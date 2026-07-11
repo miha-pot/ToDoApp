@@ -19,7 +19,7 @@ public static class IdentityExtensions
             options.Password.RequireDigit = false;
             options.Password.RequireUppercase = false;
         })
-        .AddRoles<ApplicationRole>() 
+        .AddRoles<ApplicationRole>()
         .AddEntityFrameworkStores<ApplicationDbContext>()
         .AddDefaultTokenProviders();
 
@@ -47,8 +47,7 @@ public static class IdentityExtensions
                 ValidIssuer = validIssuer,
                 ValidateLifetime = true,
                 ValidateIssuerSigningKey = true,
-                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key)),
-                ClockSkew = TimeSpan.Zero
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key))
             };
         });
 

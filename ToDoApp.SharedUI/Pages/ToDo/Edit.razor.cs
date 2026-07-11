@@ -47,9 +47,18 @@ public partial class Edit : IDisposable
 
     protected override async Task OnInitializedAsync()
     {
-        ApiResponse<ToDoResponse> response = await ToDoService.GetByIdAsync(Id, _cts.Token);
+        var tagResult = await TagService.GetActiveTags(_cts.Token);
 
-        _tagList = await TagService.GetActiveTags(_cts.Token);
+        if (tagResult.IsSuccess && tagResult.Value is not null)
+        {
+            _tagList = tagResult.Value;
+        }
+        else
+        {
+            Snackbar.Add($"{tagResult.ErrorTitle}: {tagResult.ErrorDetail}", MudBlazor.Severity.Warning);
+        }
+
+        ApiResponse<ToDoResponse> response = await ToDoService.GetByIdAsync(Id, _cts.Token);
 
         if (!response.IsSuccess || response.Value is null)
         {
@@ -95,6 +104,15 @@ public partial class Edit : IDisposable
 
         if (result.IsSuccess)
         {
+            if (result.IsWarning)
+            {
+                Snackbar.Add("Podatki niso bili spremenjeni!", MudBlazor.Severity.Warning);
+            }
+            else
+            {
+                Snackbar.Add("Podatki so bili uspešno spremenjeni!", MudBlazor.Severity.Success);
+            }
+
             NavigationManager.NavigateTo(SetUrlToPreviousLocation());
         }
 

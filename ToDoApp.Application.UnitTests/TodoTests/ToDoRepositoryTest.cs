@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using NSubstitute;
+using ToDoApp.Domain.Common;
 using ToDoApp.Domain.Entities;
 using ToDoApp.Infrastructure.DatabaseContext;
 using ToDoApp.Infrastructure.Repositories.EF;
@@ -42,7 +43,7 @@ public class TodoRepositoryTests
 
         var result = await repository.AddAsync(todoItem, CancellationToken.None);
 
-        result.Should().BeTrue();
+        result.Should().Be(DatabaseResult.Success);
 
         var dbItem = await context.TodoItems.FindAsync(todoId);
         dbItem.Should().NotBeNull();
@@ -99,7 +100,7 @@ public class TodoRepositoryTests
 
         var result = await repository.UpdateAsync(todoToUpdate, CancellationToken.None);
 
-        result.Should().BeTrue();
+        result.Should().Be(DatabaseResult.Success);
 
         var updatedDbItem = await context.TodoItems.FindAsync(todoId);
         updatedDbItem.Should().NotBeNull();
@@ -121,7 +122,7 @@ public class TodoRepositoryTests
 
         var result = await repository.DeleteAsync(todoId, CancellationToken.None);
 
-        result.Should().BeTrue();
+        result.Should().Be(DatabaseResult.Success);
 
         var deletedDbItem = await context.TodoItems.FindAsync(todoId);
         deletedDbItem.Should().BeNull();

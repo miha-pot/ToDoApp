@@ -3,6 +3,7 @@ using NSubstitute;
 using System.Net;
 using ToDoApp.Application.RepositoryContracts;
 using ToDoApp.Application.Services;
+using ToDoApp.Domain.Common;
 using ToDoApp.Domain.Entities;
 using ToDoApp.Domain.RepositoryContracts;
 using ToDoApp.Shared.ToDoDTO.Commands;
@@ -33,12 +34,12 @@ namespace ToDoApp.Application.UnitTests.TagTests
             var id = Guid.NewGuid();
             var item = new TodoItem { Id = id, IsCompleted = initialStatus };
             _mockRepository.GetByIdAsync(id, CancellationToken.None).Returns(item);
-            _mockRepository.UpdateAsync(Arg.Any<TodoItem>(), CancellationToken.None).Returns(true);
+            _mockRepository.UpdateAsync(Arg.Any<TodoItem>(), CancellationToken.None).Returns(DatabaseResult.Success);
 
             var result = await _service.ChangeCompletionStatus(id, CancellationToken.None);
 
             result.IsSuccess.Should().BeTrue();
-            result.Value.Should().Be(!initialStatus);
+            result.Value.Should().Be(true);
             await _mockRepository.Received(1).UpdateAsync(Arg.Is<TodoItem>(x => x.IsCompleted == !initialStatus), CancellationToken.None);
         }
 
@@ -59,7 +60,7 @@ namespace ToDoApp.Application.UnitTests.TagTests
             var request = new ToDoAddRequest { Title = "Test" };
             var userId = Guid.NewGuid();
             _mockCurrentUserRepository.GetUserId().Returns(userId);
-            _mockRepository.AddAsync(Arg.Any<TodoItem>(), CancellationToken.None).Returns(true);
+            _mockRepository.AddAsync(Arg.Any<TodoItem>(), CancellationToken.None).Returns(DatabaseResult.Success);
 
             var result = await _service.CreateItem(request, CancellationToken.None);
 

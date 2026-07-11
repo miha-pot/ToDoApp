@@ -2,7 +2,7 @@
 using System.Text.Json;
 using ToDoApp.Shared.Common;
 
-namespace ToDoApp.SharedUI.Services;
+namespace ToDoApp.SharedUI.Services.Common;
 
 public class ApiService
 {
@@ -23,9 +23,11 @@ public class ApiService
 
             if (response.IsSuccessStatusCode)
             {
-                var data = await response.Content.ReadFromJsonAsync<TResponse>(_options, token);
+                var result = await response.Content.ReadFromJsonAsync<ApiResponse<TResponse>>(_options, token);
 
-                return ApiResponse<TResponse>.Success(data!, statusCode);
+                return result is not null ?
+                    result :
+                    ApiResponse<TResponse>.Failure("Serialization Error", "Prazen odgovor.", statusCode);
             }
 
             var problem = await response.Content.ReadFromJsonAsync<ProblemDetailsDto>(_options, token);
@@ -39,40 +41,9 @@ public class ApiService
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Network/Serialization Error during GET: {ex.Message}");
+            Console.WriteLine($"Network Error during GET: {ex.Message}");
 
             return ApiResponse<TResponse>.Failure("Network Error", "Unable to communicate with the server.", 503);
-        }
-    }
-
-    public async Task<ApiResponse<TResponse>> GetByIdAsync<TResponse>(string endpoint, CancellationToken token)
-    {
-        try
-        {
-            var response = await _client.GetAsync(endpoint, token);
-            var statusCode = (int)response.StatusCode;
-
-            if (response.IsSuccessStatusCode)
-            {
-                var data = await response.Content.ReadFromJsonAsync<TResponse>(_options, token);
-
-                return ApiResponse<TResponse>.Success(data!, statusCode);
-            }
-
-            var problem = await response.Content.ReadFromJsonAsync<ProblemDetailsDto>(_options, token);
-
-            return ApiResponse<TResponse>.Failure(title: problem?.Title ?? "Data Fetch Failed",
-                                                  detail: problem?.Detail ?? "An error occurred while retrieving data from the server.", statusCode);
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            return ApiResponse<TResponse>.Failure("Network Error", $"Unathorized: {ex.Message}", 503);
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Network/Serialization Error during GET: {ex.Message}");
-
-            return ApiResponse<TResponse>.Failure("Network Error", $"Unable to communicate with the server: {ex.Message}", 503);
         }
     }
 
@@ -90,9 +61,11 @@ public class ApiService
 
             if (response.IsSuccessStatusCode)
             {
-                var data = await response.Content.ReadFromJsonAsync<TResponse>(_options, token);
+                var result = await response.Content.ReadFromJsonAsync<ApiResponse<TResponse>>(_options, token);
 
-                return ApiResponse<TResponse>.Success(data!, statusCode);
+                return result is not null ?
+                   result :
+                   ApiResponse<TResponse>.Failure("Serialization Error", "Prazen odgovor.", statusCode);
             }
 
             var problem = await response.Content.ReadFromJsonAsync<ProblemDetailsDto>(_options, token);
@@ -130,9 +103,11 @@ public class ApiService
 
             if (response.IsSuccessStatusCode)
             {
-                var data = await response.Content.ReadFromJsonAsync<TResponse>(_options, token);
+                var result = await response.Content.ReadFromJsonAsync<ApiResponse<TResponse>>(_options, token);
 
-                return ApiResponse<TResponse>.Success(data!);
+                return result is not null ?
+                   result :
+                   ApiResponse<TResponse>.Failure("Serialization Error", "Prazen odgovor.", statusCode);
             }
 
             var problem = await response.Content.ReadFromJsonAsync<ProblemDetailsDto>(_options, token);
@@ -169,13 +144,11 @@ public class ApiService
 
             if (response.IsSuccessStatusCode)
             {
-                if (response.StatusCode == System.Net.HttpStatusCode.NoContent)
-                {
-                    return ApiResponse<TResponse>.Success(default!);
-                }
+                var result = await response.Content.ReadFromJsonAsync<ApiResponse<TResponse>>(_options, token);
 
-                var data = await response.Content.ReadFromJsonAsync<TResponse>(_options, token);
-                return ApiResponse<TResponse>.Success(data!);
+                return result is not null ?
+                    result :
+                    ApiResponse<TResponse>.Failure("Serialization Error", "Prazen odgovor.", statusCode);
             }
 
             var problem = await response.Content.ReadFromJsonAsync<ProblemDetailsDto>(_options, token);
@@ -209,13 +182,11 @@ public class ApiService
 
             if (response.IsSuccessStatusCode)
             {
-                var successMessage = await response.Content.ReadAsStringAsync(token);
-                if (string.IsNullOrWhiteSpace(successMessage))
-                {
-                    successMessage = "Item deleted successfully.";
-                }
+                var result = await response.Content.ReadFromJsonAsync<ApiResponse<string>>(_options, token);
 
-                return ApiResponse<string>.Success(successMessage, statusCode);
+                return result is not null ?
+                    result :
+                    ApiResponse<string>.Failure("Serialization Error", "Prejet je bil prazen odgovor s strežnika.", statusCode);
             }
 
             var problem = await response.Content.ReadFromJsonAsync<ProblemDetailsDto>(_options, token);
