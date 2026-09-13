@@ -46,18 +46,13 @@ namespace ToDoApp.SharedUI.Pages.ToDo
                 {
                     _mainTodo = response.Value;
 
-                    var subTasksResponse = await ToDoService.GetSubTasks(Id, CancellationToken.None);
-
-                    if (subTasksResponse.IsSuccess && subTasksResponse.Value is not null)
-                    {
-                        _subtasks = subTasksResponse.Value;
-                    }
+                    await LoadSubtasks();
 
                     CalculateProgress();
                 }
                 else if (response.StatusCode != 401)
                 {
-                    Snackbar.Add("Napaka pri nalaganju opravila.", MudBlazor.Severity.Error);
+                    Snackbar.Add($"{response.ErrorTitle}: {response.ErrorDetail}", MudBlazor.Severity.Error);
                 }
             }
             catch (Exception ex)
@@ -70,6 +65,16 @@ namespace ToDoApp.SharedUI.Pages.ToDo
             }
         }
 
+        private async Task LoadSubtasks()
+        {
+            var subTasksResponse = await ToDoService.GetSubTasks(Id, CancellationToken.None);
+
+            if (subTasksResponse.IsSuccess && subTasksResponse.Value is not null)
+            {
+                _subtasks = subTasksResponse.Value;
+            }
+        }
+
         private async Task AddSubtaskAsync()
         {
             if (string.IsNullOrWhiteSpace(_newSubtaskTitle)) return;
@@ -77,9 +82,6 @@ namespace ToDoApp.SharedUI.Pages.ToDo
             try
             {
                 _isAddingSubtask = true;
-
-                // 🟢 Tukaj pokličeš backend API za dodajanje subtaska
-                // Npr: var result = await ToDoService.CreateSubtaskAsync(Id, _newSubtaskTitle);
 
                 ToDoAddRequest addRequest = new()
                 {
@@ -91,7 +93,10 @@ namespace ToDoApp.SharedUI.Pages.ToDo
 
                 _newSubtaskTitle = string.Empty;
 
+                await LoadSubtasks();
+
                 CalculateProgress();
+
                 Snackbar.Add("Podopravilo uspešno dodano.", MudBlazor.Severity.Success);
             }
             catch (Exception ex)

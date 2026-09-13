@@ -44,7 +44,7 @@ public class ToDoService : IToDoService
         if (toDoItem is null)
         {
             return ServiceResult<bool>.Failure("ToDo item not found!",
-                                               "ToDo item with provided id was not found!",
+                                               $"ToDo item with provided id ({id}) was not found!",
                                                HttpStatusCode.NotFound);
         }
 
@@ -102,7 +102,7 @@ public class ToDoService : IToDoService
         if (toDoItem is null)
         {
             return ServiceResult<string>.Failure("ToDo item not found!",
-                                                 "ToDo item with provided id was not found!",
+                                                 $"ToDo item with provided id ({itemId}) was not found!",
                                                  HttpStatusCode.NotFound);
         }
 
@@ -130,7 +130,7 @@ public class ToDoService : IToDoService
         if (toDoItem is null)
         {
             return ServiceResult<ToDoResponse?>.Failure("ToDo item not found!",
-                                                        "ToDo item with provided id was not found!",
+                                                        $"ToDo item with provided id ({itemId}) was not found!",
                                                         HttpStatusCode.BadRequest);
         }
 
@@ -185,7 +185,7 @@ public class ToDoService : IToDoService
         if (matchedToDoItem is null)
         {
             return ServiceResult<ToDoResponse>.Failure("ToDo item not found!",
-                                                       "ToDo item with provided id was not found!",
+                                                       $"ToDo item with provided id ({updateRequest.Id}) was not found!",
                                                        HttpStatusCode.BadRequest);
         }
 

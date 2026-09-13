@@ -11,12 +11,13 @@ var builder = WebApplication.CreateBuilder(args);
 // REGISTER SERVICES (Using Extension Methods)
 // ==========================================
 
+builder.AddSerilogLogging();
 builder.Services.AddInfrastructureServices(builder.Configuration);
 builder.Services.AddIdentityAndAuth(builder.Configuration);
 builder.Services.AddSwaggerAndVersioning();
 builder.Services.AddProblemDetails();
 builder.Services.AddCustomRateLimiter();
-builder.AddSerilogLogging();
+
 
 var hc = builder.Services.AddHealthChecks();
 hc.AddCheck(name: "self-live",
